@@ -48,4 +48,17 @@ router.get('/payments', async (req, res) => {
   }
 })
 
+router.get('/cleanups', async (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : 2
+    const [rows] = await db.query(
+      `SELECT cr.* FROM cleanup_reports cr
+       JOIN zone_members zm ON zm.zone_id = cr.zone_id
+       WHERE zm.user_id = ? ORDER BY cr.date_cleaned DESC`, [userId])
+    res.json(rows)
+  } catch {
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
 export default router
