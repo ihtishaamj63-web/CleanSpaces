@@ -57,6 +57,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import api from '../api.js'
 
 const router = useRouter()
 
@@ -66,7 +67,7 @@ const method = ref('card')
 const loading = ref(false)
 const error = ref('')
 
-// Same fallback zones as Krish's ZoneMap so demo data is consistent site-wide
+// Same fallback zones as the ZoneMap so demo data is consistent site-wide
 const fallbackZones = [
   { id: 1, name: 'NY108 Block', neighborhood: 'Manenberg', households: 62, plan_type: 'small', status: 'active' },
   { id: 3, name: 'Tafelsig', neighborhood: "Mitchell's Plain", households: 180, plan_type: 'medium', status: 'active' },
@@ -89,10 +90,8 @@ const perHousehold = computed(() => {
 
 onMounted(async () => {
   try {
-    const res = await fetch('/api/zones')
-    if (!res.ok) throw new Error('bad response')
-    const data = await res.json()
-    const active = (Array.isArray(data) ? data : []).filter(z => z.status === 'active')
+    const res = await api.get('/zones')
+    const active = (Array.isArray(res.data) ? res.data : []).filter(z => z.status === 'active')
     if (active.length === 0) throw new Error('no active zones')
     zones.value = active
   } catch {
@@ -101,28 +100,18 @@ onMounted(async () => {
   selectedZoneId.value = zones.value[0]?.id ?? null
 })
 
-function authHeaders() {
-  const headers = { 'Content-Type': 'application/json' }
-  const token = localStorage.getItem('token')
-  if (token) headers.Authorization = `Bearer ${token}`
-  return headers
-}
-
 async function pay() {
   loading.value = true
   error.value = ''
   try {
-    const res = await fetch('/api/payments/create', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ zone_id: selectedZoneId.value, method: method.value })
+    const res = await api.post('/payments/create', {
+      zone_id: selectedZoneId.value,
+      method: method.value
     })
-    if (!res.ok) throw new Error('failed')
-    const data = await res.json()
-    if (data.bypass) {
-      router.push(`/payment/success/${data.payment.id}`)
+    if (res.data.bypass) {
+      router.push(`/payment/success/${res.data.payment.id}`)
     } else {
-      submitToPayfast(data.url, data.params)
+      submitToPayfast(res.data.url, res.data.params)
     }
   } catch {
     error.value = 'Could not start the payment. Is the backend running?'

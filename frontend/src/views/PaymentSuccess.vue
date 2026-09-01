@@ -28,18 +28,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import api from '../api.js'
 
 const route = useRoute()
 const payment = ref(null)
 
 onMounted(async () => {
   try {
-    const headers = {}
-    const token = localStorage.getItem('token')
-    if (token) headers.Authorization = `Bearer ${token}`
-    const res = await fetch(`/api/payments/return/${route.params.id}`, { headers })
-    if (!res.ok) throw new Error('bad response')
-    payment.value = await res.json()
+    const res = await api.get(`/payments/return/${route.params.id}`)
+    payment.value = res.data
   } catch {
     payment.value = { id: route.params.id, amount: '—', method: '—' }
   }
