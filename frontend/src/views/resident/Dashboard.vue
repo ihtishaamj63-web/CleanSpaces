@@ -105,6 +105,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import api from '../../api.js'
 
 const tabs = [
   { key: 'zone', label: 'My Zone' },
@@ -129,13 +130,6 @@ const progressPct = computed(() => {
   return Math.min(Math.round((z.paid / z.threshold) * 100), 100)
 })
 
-function authHeaders() {
-  const headers = {}
-  const token = localStorage.getItem('token')
-  if (token) headers.Authorization = `Bearer ${token}`
-  return headers
-}
-
 function formatDate(d) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -144,15 +138,15 @@ function formatDate(d) {
 async function load() {
   try {
     const [dashRes, payRes] = await Promise.all([
-      fetch('/api/resident/dashboard', { headers: authHeaders() }),
-      fetch('/api/resident/payments', { headers: authHeaders() })
+      api.get('/resident/dashboard'),
+      api.get('/resident/payments')
     ])
-    if (dashRes.ok) data.value = await dashRes.json()
-    if (payRes.ok) payments.value = await payRes.json()
+    data.value = dashRes.data
+    payments.value = payRes.data
 
     if (data.value.hasZone) {
-      const res = await fetch('/api/resident/cleanups', { headers: authHeaders() })
-      if (res.ok) cleanups.value = await res.json()
+      const res = await api.get('/resident/cleanups')
+      cleanups.value = res.data
     }
   } catch {
     // backend down — page still renders with empty state
