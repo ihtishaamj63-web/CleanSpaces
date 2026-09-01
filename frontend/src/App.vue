@@ -29,7 +29,6 @@
 
   <footer class="site-footer">
     <p>CleanSpaces — Community-Powered Cleanup Service</p>
-    <p class="footer-muted">Manenberg · Mitchell's Plain · Khayelitsha</p>
   </footer>
 </template>
 
