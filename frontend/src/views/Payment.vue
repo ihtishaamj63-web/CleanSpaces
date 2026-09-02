@@ -1,56 +1,80 @@
 <template>
   <div class="payment-page">
-    <section class="payment-wrap">
-      <div class="section-heading">
-        <h1>Complete Your Subscription</h1>
-        <p>Choose your zone and pay your monthly contribution.</p>
-      </div>
-
-      <div class="steps">
-        <span class="step done">1. Review</span>
-        <span class="step current">2. Payment</span>
-        <span class="step">3. Confirmation</span>
-      </div>
-
-      <div class="card">
-        <h3>Order Summary</h3>
-        <div class="input-group">
-          <label for="zone">Your Zone</label>
-          <select id="zone" v-model="selectedZoneId" class="select">
-            <option v-for="z in zones" :key="z.id" :value="z.id">
-              {{ z.name }} — {{ z.neighborhood }} ({{ z.households }} households)
-            </option>
-          </select>
-        </div>
-
-        <div v-if="selectedZone" class="summary">
-          <div class="row"><span>Zone</span><span>{{ selectedZone.name }}</span></div>
-          <div class="row"><span>Plan</span><span>{{ planInfo.label }}</span></div>
-          <div class="row"><span>Monthly zone total</span><span>{{ planInfo.range }}</span></div>
-          <div class="row"><span>Your household share</span><span>± R{{ perHousehold }}</span></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Payment Method</h3>
-        <div class="methods">
-          <label class="method" :class="{ active: method === 'card' }">
-            <input type="radio" value="card" v-model="method" /> 💳 Card
-          </label>
-          <label class="method" :class="{ active: method === 'eft' }">
-            <input type="radio" value="eft" v-model="method" /> 🏦 EFT
-          </label>
-        </div>
-        <p class="note">You will complete the payment on PayFast's secure page. Card details are never entered on our site.</p>
-
-        <p v-if="error" class="error-text">{{ error }}</p>
-
-        <button class="submit-btn" type="button" :disabled="loading || !selectedZoneId" @click="pay">
-          {{ loading ? 'Processing…' : 'Proceed to Secure Payment' }}
-        </button>
-        <p class="secure">🔒 Payments processed securely by PayFast (PCI DSS Level 1 certified)</p>
+    <!-- Already-paid state -->
+    <section v-if="checking" class="payment-wrap">
+      <div class="card center-card">
+        <p class="muted-text">Checking your payment status…</p>
       </div>
     </section>
+
+    <section v-else-if="alreadyPaid" class="payment-wrap">
+      <div class="card center-card">
+        <div class="check">✓</div>
+        <h3>You've Paid This Month</h3>
+        <p class="muted-text">
+          Your contribution to {{ paidZoneName }} has been received.<br />
+          Next payment: 1 October 2026.
+        </p>
+        <router-link to="/resident/dashboard" class="submit-btn inline-btn">
+          Go to My Dashboard
+        </router-link>
+      </div>
+    </section>
+
+    <!-- Payment flow -->
+    <template v-else>
+      <section class="payment-wrap">
+        <div class="section-heading">
+          <h1>Complete Your Subscription</h1>
+          <p>Choose your zone and pay your monthly contribution.</p>
+        </div>
+
+        <div class="steps">
+          <span class="step done">1. Review</span>
+          <span class="step current">2. Payment</span>
+          <span class="step">3. Confirmation</span>
+        </div>
+
+        <div class="card">
+          <h3>Order Summary</h3>
+          <div class="input-group">
+            <label for="zone">Your Zone</label>
+            <select id="zone" v-model="selectedZoneId" class="select">
+              <option v-for="z in zones" :key="z.id" :value="z.id">
+                {{ z.name }} — {{ z.neighborhood }} ({{ z.households }} households)
+              </option>
+            </select>
+          </div>
+
+          <div v-if="selectedZone" class="summary">
+            <div class="row"><span>Zone</span><span>{{ selectedZone.name }}</span></div>
+            <div class="row"><span>Plan</span><span>{{ planInfo.label }}</span></div>
+            <div class="row"><span>Monthly zone total</span><span>{{ planInfo.range }}</span></div>
+            <div class="row"><span>Your household share</span><span>± R{{ perHousehold }}</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Payment Method</h3>
+          <div class="methods">
+            <label class="method" :class="{ active: method === 'card' }">
+              <input type="radio" value="card" v-model="method" /> 💳 Card
+            </label>
+            <label class="method" :class="{ active: method === 'eft' }">
+              <input type="radio" value="eft" v-model="method" /> 🏦 EFT
+            </label>
+          </div>
+          <p class="note">You will complete the payment on PayFast's secure page. Card details are never entered on our site.</p>
+
+          <p v-if="error" class="error-text">{{ error }}</p>
+
+          <button class="submit-btn" type="button" :disabled="loading || !selectedZoneId" @click="pay">
+            {{ loading ? 'Processing…' : 'Proceed to Secure Payment' }}
+          </button>
+          <p class="secure">🔒 Payments processed securely by PayFast (PCI DSS Level 1 certified)</p>
+        </div>
+      </section>
+    </template>
   </div>
 </template>
 
@@ -61,17 +85,19 @@ import api from '../api.js'
 
 const router = useRouter()
 
+const checking = ref(true)
+const alreadyPaid = ref(false)
+const paidZoneName = ref('')
+
 const zones = ref([])
 const selectedZoneId = ref(null)
 const method = ref('card')
 const loading = ref(false)
 const error = ref('')
 
-// Same fallback zones as the ZoneMap so demo data is consistent site-wide
+// Fallback zone matches the real DB row (zone 1, NY108 Block) so demo data stays coherent
 const fallbackZones = [
   { id: 1, name: 'NY108 Block', neighborhood: 'Manenberg', households: 62, plan_type: 'small', status: 'active' },
-  { id: 3, name: 'Tafelsig', neighborhood: "Mitchell's Plain", households: 180, plan_type: 'medium', status: 'active' },
-  { id: 5, name: 'Site C', neighborhood: 'Khayelitsha', households: 210, plan_type: 'large', status: 'active' },
 ]
 
 const planInfoMap = {
@@ -89,6 +115,22 @@ const perHousehold = computed(() => {
 })
 
 onMounted(async () => {
+  // Double-payment guard: check status BEFORE showing the form.
+  // If this user already paid this month, they never see the pay button.
+  try {
+    const dash = await api.get('/resident/dashboard')
+    if (dash.data.hasZone && dash.data.zone.myStatus === 'paid') {
+      alreadyPaid.value = true
+      paidZoneName.value = dash.data.zone.name
+      checking.value = false
+      return
+    }
+  } catch {
+    // Dashboard unreachable — fall through and allow the payment attempt.
+    // The backend still validates zone and membership before charging.
+  }
+
+  // Load zones for the dropdown
   try {
     const res = await api.get('/zones')
     const active = (Array.isArray(res.data) ? res.data : []).filter(z => z.status === 'active')
@@ -98,6 +140,7 @@ onMounted(async () => {
     zones.value = fallbackZones
   }
   selectedZoneId.value = zones.value[0]?.id ?? null
+  checking.value = false
 })
 
 async function pay() {
@@ -142,6 +185,22 @@ function submitToPayfast(url, params) {
 .section-heading { text-align: center; margin-bottom: 1.5rem; }
 .section-heading h1 { margin: 0 0 .4rem; font-size: 2rem; color: #12332d; }
 .section-heading p { margin: 0; color: #6a7a76; }
+
+/* Already-paid / checking states */
+.center-card { text-align: center; padding: 3rem 1.5rem; }
+.center-card h3 { margin: 0 0 .5rem; color: #12332d; font-size: 1.4rem; }
+.check {
+  width: 64px; height: 64px; line-height: 64px; border-radius: 50%;
+  background: #7cb342; color: #0b2a25; font-size: 32px; font-weight: 800;
+  margin: 0 auto 1rem;
+  animation: pop 0.5s ease-out;
+}
+.inline-btn { display: inline-block; width: auto; padding: .8rem 2rem; margin-top: 1rem; }
+@keyframes pop {
+  0%   { transform: scale(0); }
+  70%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
 
 .steps { display: flex; justify-content: center; gap: .5rem; flex-wrap: wrap; margin-bottom: 2rem; }
 .step { padding: .3rem .9rem; border-radius: 20px; font-size: .8rem; font-weight: 700; color: #6a7a76; background: white; border: 1px solid #e0e5e2; }
