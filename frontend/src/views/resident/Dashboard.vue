@@ -1,38 +1,33 @@
 <template>
   <div class="dash">
-    <!-- AMBIENT LIGHT -->
     <div class="glow glow-a"></div>
     <div class="glow glow-b"></div>
 
-    <!-- HERO -->
     <header class="hero">
       <p class="eyebrow">My Zone</p>
       <h1>{{ data.hasZone ? data.zone.name : 'Join A Zone' }}</h1>
       <p class="hero-sub">
         {{ data.hasZone
-          ? `${data.zone.neighborhood} · ${data.zone.households} households`
+          ? data.zone.neighborhood + ' · ' + data.zone.households + ' households'
           : 'Pool with your street. Fund your cleanups.' }}
       </p>
     </header>
 
     <main class="rail">
-      <!-- LOADING -->
       <div v-if="loading" class="block">
         <div class="spinner"></div>
       </div>
 
-      <!-- OFFLINE -->
       <div v-else-if="loadError" class="block">
         <h2 class="block-title">Offline</h2>
         <p class="sub">Couldn't reach CleanSpaces. <button class="text-btn" @click="load">Retry</button></p>
       </div>
 
-      <!-- NO ZONE -->
       <div v-else-if="!data.hasZone" class="block">
         <h2 class="block-title">Get Started</h2>
         <p class="big-sub">You're not part of a zone yet.</p>
         <p class="sub">Register your street and start pooling with your neighbours.</p>
-        <router-link to="/how-it-works" class="cta">Register Your Zone →</router-link>
+        <router-link to="/how-it-works" class="cta">Register Your Zone</router-link>
       </div>
 
       <template v-else>
@@ -52,7 +47,7 @@
 
           <div class="action-row">
             <span class="status-line" :class="data.zone.myStatus">
-              {{ data.zone.myStatus === 'paid' ? '● You\'ve paid this month' : '● Payment due' }}
+              {{ data.zone.myStatus === 'paid' ? '● You have paid this month' : '● Payment due' }}
             </span>
             <router-link v-if="data.zone.myStatus !== 'paid'" to="/payment" class="cta">
               Pay R{{ perMonth }} →
@@ -69,10 +64,14 @@
           <template v-if="cleanups.length">
             <div class="chips">
               <button
-                v-for="(c, i) in cleanups" :key="c.id"
-                class="chip" :class="{ on: i === currentCleanup }"
+                v-for="(c, i) in cleanups"
+                :key="c.id"
+                class="chip"
+                :class="{ on: i === currentCleanup }"
                 @click="selectCleanup(i)"
-              >{{ formatDate(c.date_cleaned) }}</button>
+              >
+                {{ formatDate(c.date_cleaned) }}
+              </button>
             </div>
 
             <div
@@ -89,16 +88,16 @@
                 :src="current.after_url"
                 alt="After cleanup"
                 draggable="false"
-                :style="{ clipPath: 'inset(0 ' + (100 - pos) + '% 0 0)' }"
+                :style="{ clipPath: 'inset(0 0 0 ' + pos + '%)' }"
               />
               <div class="handle" :style="{ left: pos + '%' }">
                 <div class="knob">⇄</div>
               </div>
-              <span class="tag after">After</span>
               <span class="tag before">Before</span>
+              <span class="tag after">After</span>
             </div>
 
-            <p class="compare-hint">drag anywhere on the image</p>
+            <p class="compare-hint">drag the handle — or just watch</p>
             <p class="notes">{{ current.notes }}</p>
           </template>
 
@@ -112,7 +111,7 @@
           <h2 class="block-title">Payments</h2>
           <template v-if="payments.length">
             <div v-for="p in payments" :key="p.id" class="ledger-row">
-              <router-link :to="`/payment/success/${p.id}`" class="ref">
+              <router-link :to="'/payment/success/' + p.id" class="ref">
                 #CS-{{ String(p.id).padStart(5, '0') }}
               </router-link>
               <span class="ledger-meta">{{ formatDate(p.created_at) }} · {{ p.method }}</span>
@@ -130,7 +129,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import api from '../../api.js'
 
 const loading = ref(true)
@@ -143,6 +142,8 @@ const progressDisplay = ref(0)
 const currentCleanup = ref(0)
 const pos = ref(50)
 const dragging = ref(false)
+let autoTimer = null
+let cycleStart = 0
 
 const current = computed(() => cleanups.value[currentCleanup.value] || {})
 
@@ -166,13 +167,32 @@ const remaining = computed(() => {
 function selectCleanup(i) {
   currentCleanup.value = i
   pos.value = 50
+  cycleStart = Date.now() - ((pos.value - 8) / 84) * 8000
 }
 
 function onDrag(e) {
-  if (e.type === 'pointermove' && !dragging.value) return
   const rect = e.currentTarget.getBoundingClientRect()
   const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left
   pos.value = Math.min(97, Math.max(3, (x / rect.width) * 100))
+}
+
+function startAuto() {
+  stopAuto()
+  cycleStart = Date.now()
+  autoTimer = setInterval(() => {
+    if (dragging.value) {
+      cycleStart = Date.now() - ((pos.value - 8) / 84) * 8000
+      return
+    }
+    const t = ((Date.now() - cycleStart) % 8000) / 8000
+    const eased = 0.5 - 0.5 * Math.cos(t * Math.PI * 2)
+    pos.value = 8 + eased * 84
+  }, 40)
+}
+
+function stopAuto() {
+  if (autoTimer) clearInterval(autoTimer)
+  autoTimer = null
 }
 
 function formatDate(d) {
@@ -198,6 +218,7 @@ async function load() {
 
     await nextTick()
     setTimeout(() => { progressDisplay.value = progressPct.value }, 300)
+    startAuto()
   } catch {
     loadError.value = true
   } finally {
@@ -206,6 +227,7 @@ async function load() {
 }
 
 onMounted(load)
+onUnmounted(stopAuto)
 </script>
 
 <style scoped>
@@ -217,7 +239,6 @@ onMounted(load)
   overflow-x: hidden;
 }
 
-/* AMBIENT LIGHT — the depth trick from Apple/Loopy product pages */
 .glow {
   position: absolute;
   border-radius: 50%;
@@ -225,17 +246,20 @@ onMounted(load)
   pointer-events: none;
 }
 .glow-a {
-  width: 640px; height: 640px;
-  top: -220px; right: -140px;
+  width: 640px;
+  height: 640px;
+  top: -220px;
+  right: -140px;
   background: rgba(124, 179, 66, 0.16);
 }
 .glow-b {
-  width: 520px; height: 520px;
-  bottom: -160px; left: -180px;
+  width: 520px;
+  height: 520px;
+  bottom: -160px;
+  left: -180px;
   background: rgba(42, 74, 67, 0.55);
 }
 
-/* HERO */
 .hero {
   position: relative;
   max-width: 960px;
@@ -243,10 +267,12 @@ onMounted(load)
   padding: 5rem 1.5rem 2.5rem;
 }
 .eyebrow {
-  margin: 0 0 .7rem;
+  margin: 0 0 0.7rem;
   font-family: 'Sora', sans-serif;
-  font-size: .78rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .22em;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
   color: #7cb342;
 }
 .hero h1 {
@@ -257,9 +283,12 @@ onMounted(load)
   letter-spacing: -0.035em;
   line-height: 1.04;
 }
-.hero-sub { margin: 1rem 0 0; color: #a0b0ac; font-size: 1.08rem; }
+.hero-sub {
+  margin: 1rem 0 0;
+  color: #a0b0ac;
+  font-size: 1.08rem;
+}
 
-/* RAIL */
 .rail {
   position: relative;
   max-width: 960px;
@@ -268,26 +297,59 @@ onMounted(load)
   display: grid;
   gap: 3.25rem;
 }
-.block { animation: rise .65s cubic-bezier(.22, 1, .36, 1) both; }
-.block:nth-child(2) { animation-delay: .08s; }
-.block:nth-child(3) { animation-delay: .16s; }
+.block {
+  animation: rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.block:nth-child(2) { animation-delay: 0.08s; }
+.block:nth-child(3) { animation-delay: 0.16s; }
 
 .block-title {
   margin: 0 0 1.5rem;
   font-family: 'Sora', sans-serif;
-  font-size: .92rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .16em;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
   color: #7cb342;
 }
-.sub { color: #a0b0ac; margin: .4rem 0 0; font-size: .95rem; }
-.big-sub { color: #f4f6f5; font-size: 1.35rem; font-weight: 700; margin: 0; font-family: 'Sora', sans-serif; }
-.text-btn { background: none; border: 0; color: #7cb342; font: inherit; font-weight: 600; cursor: pointer; }
-.text-link { color: #7cb342; font-weight: 600; text-decoration: none; }
+.sub {
+  color: #a0b0ac;
+  margin: 0.4rem 0 0;
+  font-size: 0.95rem;
+}
+.big-sub {
+  color: #f4f6f5;
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+}
+.text-btn {
+  background: none;
+  border: 0;
+  color: #7cb342;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.text-link {
+  color: #7cb342;
+  font-weight: 600;
+  text-decoration: none;
+}
 
-.rule { border: 0; border-top: 1px solid #1d3b35; margin: 0; }
+.rule {
+  border: 0;
+  border-top: 1px solid #1d3b35;
+  margin: 0;
+}
 
-/* ACTIVATION */
-.stat-line { display: flex; align-items: baseline; gap: 1.4rem; flex-wrap: wrap; }
+.stat-line {
+  display: flex;
+  align-items: baseline;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+}
 .mega {
   font-family: 'Sora', sans-serif;
   font-size: clamp(3.6rem, 11vw, 7rem);
@@ -299,8 +361,15 @@ onMounted(load)
   background-clip: text;
   color: transparent;
 }
-.stat-context { display: grid; gap: .15rem; }
-.stat-strong { font-weight: 700; font-size: 1.18rem; font-family: 'Sora', sans-serif; }
+.stat-context {
+  display: grid;
+  gap: 0.15rem;
+}
+.stat-strong {
+  font-weight: 700;
+  font-size: 1.18rem;
+  font-family: 'Sora', sans-serif;
+}
 
 .bar {
   height: 8px;
@@ -314,51 +383,62 @@ onMounted(load)
   border-radius: 999px;
   background: linear-gradient(90deg, #7cb342, #66bb6a);
   box-shadow: 0 0 20px rgba(124, 179, 66, 0.55);
-  transition: width 1.3s cubic-bezier(.22, 1, .36, 1);
+  transition: width 1.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .action-row {
-  display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 .status-line {
-  font-size: .88rem; font-weight: 600;
-  letter-spacing: .02em;
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 .status-line.paid { color: #7cb342; }
 .status-line.pending { color: #ffca7a; }
 
-/* CTA */
 .cta {
   display: inline-block;
-  padding: .95rem 2.3rem;
+  padding: 0.95rem 2.3rem;
   border-radius: 999px;
   background: linear-gradient(135deg, #7cb342, #689f38);
   color: #0b2a25;
   font-family: 'Sora', sans-serif;
-  font-weight: 700; font-size: 1.02rem;
+  font-weight: 700;
+  font-size: 1.02rem;
   text-decoration: none;
   box-shadow: 0 6px 26px rgba(124, 179, 66, 0.4);
-  transition: transform .25s ease, box-shadow .25s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 .cta:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 36px rgba(124, 179, 66, 0.55);
 }
 
-/* CLEANUPS */
-.chips { display: flex; gap: .55rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.chips {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
 .chip {
-  padding: .5rem 1.25rem;
+  padding: 0.5rem 1.25rem;
   border-radius: 999px;
   background: transparent;
   color: #a0b0ac;
   border: 1px solid #2a4a43;
   font-family: 'Sora', sans-serif;
-  font-size: .82rem; font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all .2s ease;
+  transition: all 0.2s ease;
 }
-.chip:hover { border-color: #7cb342; color: #f4f6f5; }
+.chip:hover {
+  border-color: #7cb342;
+  color: #f4f6f5;
+}
 .chip.on {
   background: #7cb342;
   color: #0b2a25;
@@ -366,7 +446,6 @@ onMounted(load)
   box-shadow: 0 4px 14px rgba(124, 179, 66, 0.35);
 }
 
-/* DRAG-TO-COMPARE */
 .compare {
   position: relative;
   aspect-ratio: 16 / 10;
@@ -379,8 +458,10 @@ onMounted(load)
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 .compare img {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   display: block;
   pointer-events: none;
@@ -389,7 +470,9 @@ onMounted(load)
 .img-after { z-index: 2; }
 
 .handle {
-  position: absolute; top: 0; bottom: 0;
+  position: absolute;
+  top: 0;
+  bottom: 0;
   z-index: 4;
   transform: translateX(-50%);
   pointer-events: none;
@@ -397,48 +480,72 @@ onMounted(load)
 .handle::before {
   content: '';
   position: absolute;
-  top: 0; bottom: 0; left: -1.5px;
+  top: 0;
+  bottom: 0;
+  left: -1.5px;
   width: 3px;
   background: #fff;
   box-shadow: 0 0 14px rgba(0, 0, 0, 0.7);
 }
 .knob {
-  position: absolute; top: 50%; left: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   transform: translate(-50%, -50%);
-  width: 50px; height: 50px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background: linear-gradient(135deg, #7cb342, #689f38);
   color: #0b2a25;
-  display: grid; place-items: center;
-  font-size: 1.25rem; font-weight: 800;
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+  font-weight: 800;
   box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5), 0 0 0 5px rgba(255, 255, 255, 0.12);
-  transition: transform .2s ease;
+  transition: transform 0.2s ease;
 }
-.compare:active .knob { transform: translate(-50%, -50%) scale(1.14); }
+.compare:active .knob {
+  transform: translate(-50%, -50%) scale(1.14);
+}
 
 .tag {
-  position: absolute; bottom: 1.1rem;
+  position: absolute;
+  bottom: 1.1rem;
   z-index: 5;
-  padding: .38rem 1.05rem;
+  padding: 0.38rem 1.05rem;
   border-radius: 999px;
-  font-size: .72rem; font-weight: 700;
-  letter-spacing: .09em; text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
   backdrop-filter: blur(8px);
 }
-.tag.after  { left: 1.1rem; background: rgba(104, 159, 56, 0.85); color: #fff; }
-.tag.before { right: 1.1rem; background: rgba(15, 15, 15, 0.6); color: #fff; }
+.tag.before {
+  left: 1.1rem;
+  background: rgba(15, 15, 15, 0.6);
+  color: #fff;
+}
+.tag.after {
+  right: 1.1rem;
+  background: rgba(104, 159, 56, 0.85);
+  color: #fff;
+}
 
 .compare-hint {
-  margin: .8rem 0 0;
+  margin: 0.8rem 0 0;
   text-align: center;
   color: #6a7a76;
-  font-size: .75rem;
-  letter-spacing: .12em;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.notes { margin: 1.1rem 0 0; font-size: 1.05rem; color: #d7e4de; max-width: 60ch; }
+.notes {
+  margin: 1.1rem 0 0;
+  font-size: 1.05rem;
+  color: #d7e4de;
+  max-width: 60ch;
+}
 
-/* PAYMENTS LEDGER */
 .ledger-row {
   display: flex;
   align-items: center;
@@ -453,16 +560,21 @@ onMounted(load)
   font-family: 'Sora', sans-serif;
   text-decoration: none;
   border-bottom: 2px solid #7cb342;
-  transition: color .2s;
+  transition: color 0.2s;
 }
 .ref:hover { color: #7cb342; }
-.ledger-meta { color: #a0b0ac; font-size: .9rem; }
+.ledger-meta {
+  color: #a0b0ac;
+  font-size: 0.9rem;
+}
 .ledger-status {
   margin-left: auto;
-  padding: .28rem .85rem;
+  padding: 0.28rem 0.85rem;
   border-radius: 999px;
-  font-size: .72rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .07em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
 }
 .ledger-status.completed { color: #7cb342; background: rgba(124, 179, 66, 0.13); }
 .ledger-status.pending { color: #ffca7a; background: rgba(255, 202, 122, 0.1); }
@@ -474,17 +586,19 @@ onMounted(load)
   letter-spacing: -0.02em;
 }
 
-/* SPINNER */
 .spinner {
-  width: 44px; height: 44px;
+  width: 44px;
+  height: 44px;
   margin: 3rem auto;
   border: 4px solid rgba(255, 255, 255, 0.1);
   border-top-color: #7cb342;
   border-radius: 50%;
-  animation: spin .8s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 @keyframes rise {
   from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: none; }
