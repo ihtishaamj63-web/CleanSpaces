@@ -45,14 +45,28 @@
             <div class="bar-fill" :style="{ width: progressDisplay + '%' }"></div>
           </div>
 
-          <div class="action-row">
-            <span class="status-line" :class="data.zone.myStatus">
-              {{ data.zone.myStatus === 'paid' ? '● You have paid this month' : '● Payment due' }}
-            </span>
-            <router-link v-if="data.zone.myStatus !== 'paid'" to="/payment" class="cta">
-              Pay R{{ perMonth }} →
+          <!-- SMART STATUS BANNER -->
+          <div class="status-banner" :class="data.zone.myStatus">
+            <p class="status-msg">
+              <template v-if="data.zone.myStatus === 'paid'">
+                ● You're covered this month — your contribution keeps the weekly cleanups running.
+                Next payment due 1 October.
+              </template>
+              <template v-else>
+                ⚠ Your payment is due. R{{ perMonth }} secures this month's cleanup for your zone.
+              </template>
+            </p>
+            <router-link v-if="data.zone.myStatus !== 'paid'" to="/payment" class="cta compact">
+              Pay Now →
             </router-link>
           </div>
+
+          <p class="impact-line" v-if="data.zone.myStatus === 'paid'">
+            Your contributions to date: <strong>{{ payments.length }}</strong>
+            <template v-if="payments.length === 1">payment</template>
+            <template v-else>payments</template>
+            · <strong>R{{ totalPaid }}</strong> into your zone's cleanups
+          </p>
         </section>
 
         <hr class="rule" />
@@ -153,6 +167,13 @@ const perMonth = computed(() => {
   return Math.round(base / data.value.zone.households)
 })
 
+const totalPaid = computed(() =>
+  payments.value
+    .filter(p => p.status === 'completed')
+    .reduce((sum, p) => sum + Number(p.amount || 0), 0)
+    .toFixed(0)
+)
+
 const progressPct = computed(() => {
   const z = data.value.zone
   if (!z || !z.threshold) return 0
@@ -176,18 +197,49 @@ function onDrag(e) {
   pos.value = Math.min(97, Math.max(3, (x / rect.width) * 100))
 }
 
+/* Auto-sweep: 8s cycle, eases to the extremes and HOLDS there 2s each way,
+   giving viewers time to read both photos before reversing. */
+const HOLD = 2000
+const SWEEP = 3000
+
 function startAuto() {
   stopAuto()
   cycleStart = Date.now()
   autoTimer = setInterval(() => {
     if (dragging.value) {
-      cycleStart = Date.now() - ((pos.value - 8) / 84) * 8000
+      cycleStart = Date.now() - posToTime(pos.value)
       return
     }
-    const t = ((Date.now() - cycleStart) % 8000) / 8000
-    const eased = 0.5 - 0.5 * Math.cos(t * Math.PI * 2)
-    pos.value = 8 + eased * 84
+    const t = (Date.now() - cycleStart) % ((SWEEP + HOLD) * 2)
+    pos.value = timeToPos(t)
   }, 40)
+}
+
+function posToTime(p) {
+  // inverse of timeToPos — approximate for smooth resume
+  const phase = ((p - 8) / 84)
+  return phase * (SWEEP + HOLD)
+}
+
+function timeToPos(t) {
+  const cycle = (SWEEP + HOLD) * 2
+  let u = t / cycle
+  // first half: 8 -> 92 (sweep, hold at 92); second half: 92 -> 8 (sweep, hold at 8)
+  if (u < 0.5) {
+    const v = u * 2 // 0..1
+    if (v < SWEEP / (SWEEP + HOLD)) {
+      const w = v * (SWEEP + HOLD) / SWEEP // 0..1 over sweep
+      return 8 + (0.5 - 0.5 * Math.cos(w * Math.PI)) * 84
+    }
+    return 92
+  } else {
+    const v = (u - 0.5) * 2
+    if (v < SWEEP / (SWEEP + HOLD)) {
+      const w = v * (SWEEP + HOLD) / SWEEP
+      return 92 - (0.5 - 0.5 * Math.cos(w * Math.PI)) * 84
+    }
+    return 8
+  }
 }
 
 function stopAuto() {
@@ -246,17 +298,13 @@ onUnmounted(stopAuto)
   pointer-events: none;
 }
 .glow-a {
-  width: 640px;
-  height: 640px;
-  top: -220px;
-  right: -140px;
+  width: 640px; height: 640px;
+  top: -220px; right: -140px;
   background: rgba(124, 179, 66, 0.16);
 }
 .glow-b {
-  width: 520px;
-  height: 520px;
-  bottom: -160px;
-  left: -180px;
+  width: 520px; height: 520px;
+  bottom: -160px; left: -180px;
   background: rgba(42, 74, 67, 0.55);
 }
 
@@ -267,13 +315,11 @@ onUnmounted(stopAuto)
   padding: 5rem 1.5rem 2.5rem;
 }
 .eyebrow {
-  margin: 0 0 0.7rem;
+  margin: 0 0 .7rem;
   font-family: 'Sora', sans-serif;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  color: #7cb342;
+  font-size: .78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .22em;
+  color: #9ccc65;
 }
 .hero h1 {
   margin: 0;
@@ -297,59 +343,29 @@ onUnmounted(stopAuto)
   display: grid;
   gap: 3.25rem;
 }
-.block {
-  animation: rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.block:nth-child(2) { animation-delay: 0.08s; }
-.block:nth-child(3) { animation-delay: 0.16s; }
+.block { animation: rise .65s cubic-bezier(.22, 1, .36, 1) both; }
+.block:nth-child(2) { animation-delay: .08s; }
+.block:nth-child(3) { animation-delay: .16s; }
 
 .block-title {
   margin: 0 0 1.5rem;
   font-family: 'Sora', sans-serif;
-  font-size: 0.92rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: #7cb342;
+  font-size: .92rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .16em;
+  color: #9ccc65;
 }
-.sub {
-  color: #a0b0ac;
-  margin: 0.4rem 0 0;
-  font-size: 0.95rem;
-}
+.sub { color: #a0b0ac; margin: .4rem 0 0; font-size: .95rem; }
 .big-sub {
-  color: #f4f6f5;
-  font-size: 1.35rem;
-  font-weight: 700;
-  margin: 0;
-  font-family: 'Sora', sans-serif;
+  color: #f4f6f5; font-size: 1.35rem; font-weight: 700;
+  margin: 0; font-family: 'Sora', sans-serif;
 }
-.text-btn {
-  background: none;
-  border: 0;
-  color: #7cb342;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-.text-link {
-  color: #7cb342;
-  font-weight: 600;
-  text-decoration: none;
-}
+.text-btn { background: none; border: 0; color: #9ccc65; font: inherit; font-weight: 600; cursor: pointer; }
+.text-link { color: #9ccc65; font-weight: 600; text-decoration: none; }
 
-.rule {
-  border: 0;
-  border-top: 1px solid #1d3b35;
-  margin: 0;
-}
+.rule { border: 0; border-top: 1px solid #1d3b35; margin: 0; }
 
-.stat-line {
-  display: flex;
-  align-items: baseline;
-  gap: 1.4rem;
-  flex-wrap: wrap;
-}
+/* ACTIVATION */
+.stat-line { display: flex; align-items: baseline; gap: 1.4rem; flex-wrap: wrap; }
 .mega {
   font-family: 'Sora', sans-serif;
   font-size: clamp(3.6rem, 11vw, 7rem);
@@ -361,15 +377,8 @@ onUnmounted(stopAuto)
   background-clip: text;
   color: transparent;
 }
-.stat-context {
-  display: grid;
-  gap: 0.15rem;
-}
-.stat-strong {
-  font-weight: 700;
-  font-size: 1.18rem;
-  font-family: 'Sora', sans-serif;
-}
+.stat-context { display: grid; gap: .15rem; }
+.stat-strong { font-weight: 700; font-size: 1.18rem; font-family: 'Sora', sans-serif; }
 
 .bar {
   height: 8px;
@@ -381,64 +390,83 @@ onUnmounted(stopAuto)
 .bar-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #7cb342, #66bb6a);
+  background: linear-gradient(90deg, #7cb342, #9ccc65);
   box-shadow: 0 0 20px rgba(124, 179, 66, 0.55);
-  transition: width 1.3s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width 1.3s cubic-bezier(.22, 1, .36, 1);
 }
 
-.action-row {
+/* SMART STATUS BANNER */
+.status-banner {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
+  padding: 1.1rem 1.4rem;
+  border-radius: 14px;
   flex-wrap: wrap;
+  margin-bottom: .9rem;
+  animation: rise .6s cubic-bezier(.22, 1, .36, 1) .3s both;
 }
-.status-line {
-  font-size: 0.88rem;
-  font-weight: 600;
+.status-banner.paid {
+  background: rgba(124, 179, 66, 0.1);
+  border: 1px solid rgba(124, 179, 66, 0.3);
 }
-.status-line.paid { color: #7cb342; }
-.status-line.pending { color: #ffca7a; }
+.status-banner.pending {
+  background: rgba(255, 202, 122, 0.08);
+  border: 1px solid rgba(255, 202, 122, 0.3);
+}
+.status-msg {
+  margin: 0;
+  font-size: .93rem;
+  line-height: 1.5;
+}
+.status-banner.paid .status-msg { color: #d7e4de; }
+.status-banner.pending .status-msg { color: #ffe3c2; }
 
+.impact-line {
+  margin: 0;
+  color: #a0b0ac;
+  font-size: .88rem;
+}
+.impact-line strong { color: #9ccc65; font-weight: 700; }
+
+/* CTA */
 .cta {
   display: inline-block;
-  padding: 0.95rem 2.3rem;
+  padding: .95rem 2.3rem;
   border-radius: 999px;
   background: linear-gradient(135deg, #7cb342, #689f38);
   color: #0b2a25;
   font-family: 'Sora', sans-serif;
-  font-weight: 700;
-  font-size: 1.02rem;
+  font-weight: 700; font-size: 1.02rem;
   text-decoration: none;
   box-shadow: 0 6px 26px rgba(124, 179, 66, 0.4);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: transform .25s ease, box-shadow .25s ease;
+  white-space: nowrap;
 }
 .cta:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 36px rgba(124, 179, 66, 0.55);
 }
-
-.chips {
-  display: flex;
-  gap: 0.55rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.5rem;
+.cta.compact {
+  padding: .6rem 1.4rem;
+  font-size: .88rem;
+  margin-left: auto;
 }
+
+/* CLEANUPS */
+.chips { display: flex; gap: .55rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
 .chip {
-  padding: 0.5rem 1.25rem;
+  padding: .5rem 1.25rem;
   border-radius: 999px;
   background: transparent;
   color: #a0b0ac;
   border: 1px solid #2a4a43;
   font-family: 'Sora', sans-serif;
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: .82rem; font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all .2s ease;
 }
-.chip:hover {
-  border-color: #7cb342;
-  color: #f4f6f5;
-}
+.chip:hover { border-color: #9ccc65; color: #f4f6f5; }
 .chip.on {
   background: #7cb342;
   color: #0b2a25;
@@ -446,6 +474,7 @@ onUnmounted(stopAuto)
   box-shadow: 0 4px 14px rgba(124, 179, 66, 0.35);
 }
 
+/* DRAG-TO-COMPARE */
 .compare {
   position: relative;
   aspect-ratio: 16 / 10;
@@ -458,10 +487,8 @@ onUnmounted(stopAuto)
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 .compare img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
   object-fit: cover;
   display: block;
   pointer-events: none;
@@ -470,9 +497,7 @@ onUnmounted(stopAuto)
 .img-after { z-index: 2; }
 
 .handle {
-  position: absolute;
-  top: 0;
-  bottom: 0;
+  position: absolute; top: 0; bottom: 0;
   z-index: 4;
   transform: translateX(-50%);
   pointer-events: none;
@@ -480,27 +505,20 @@ onUnmounted(stopAuto)
 .handle::before {
   content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -1.5px;
+  top: 0; bottom: 0; left: -1.5px;
   width: 3px;
   background: #fff;
   box-shadow: 0 0 14px rgba(0, 0, 0, 0.7);
 }
 .knob {
-  position: absolute;
-  top: 50%;
-  left: 50%;
+  position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 50px;
-  height: 50px;
+  width: 50px; height: 50px;
   border-radius: 50%;
   background: linear-gradient(135deg, #7cb342, #689f38);
   color: #0b2a25;
-  display: grid;
-  place-items: center;
-  font-size: 1.25rem;
-  font-weight: 800;
+  display: grid; place-items: center;
+  font-size: 1.25rem; font-weight: 800;
   box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5), 0 0 0 5px rgba(255, 255, 255, 0.12);
   transition: transform 0.2s ease;
 }
@@ -509,15 +527,12 @@ onUnmounted(stopAuto)
 }
 
 .tag {
-  position: absolute;
-  bottom: 1.1rem;
+  position: absolute; bottom: 1.1rem;
   z-index: 5;
-  padding: 0.38rem 1.05rem;
+  padding: .38rem 1.05rem;
   border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font-size: .72rem; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase;
   backdrop-filter: blur(8px);
 }
 .tag.before {
@@ -532,11 +547,11 @@ onUnmounted(stopAuto)
 }
 
 .compare-hint {
-  margin: 0.8rem 0 0;
+  margin: .8rem 0 0;
   text-align: center;
   color: #6a7a76;
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
+  font-size: .75rem;
+  letter-spacing: .12em;
   text-transform: uppercase;
 }
 .notes {
@@ -546,6 +561,7 @@ onUnmounted(stopAuto)
   max-width: 60ch;
 }
 
+/* PAYMENTS LEDGER */
 .ledger-row {
   display: flex;
   align-items: center;
@@ -559,10 +575,10 @@ onUnmounted(stopAuto)
   font-weight: 700;
   font-family: 'Sora', sans-serif;
   text-decoration: none;
-  border-bottom: 2px solid #7cb342;
+  border-bottom: 2px solid #9ccc65;
   transition: color 0.2s;
 }
-.ref:hover { color: #7cb342; }
+.ref:hover { color: #9ccc65; }
 .ledger-meta {
   color: #a0b0ac;
   font-size: 0.9rem;
@@ -571,12 +587,10 @@ onUnmounted(stopAuto)
   margin-left: auto;
   padding: 0.28rem 0.85rem;
   border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em;
 }
-.ledger-status.completed { color: #7cb342; background: rgba(124, 179, 66, 0.13); }
+.ledger-status.completed { color: #9ccc65; background: rgba(124, 179, 66, 0.13); }
 .ledger-status.pending { color: #ffca7a; background: rgba(255, 202, 122, 0.1); }
 .ledger-status.failed { color: #ff8a80; background: rgba(255, 138, 128, 0.1); }
 .amount {
@@ -587,18 +601,15 @@ onUnmounted(stopAuto)
 }
 
 .spinner {
-  width: 44px;
-  height: 44px;
+  width: 44px; height: 44px;
   margin: 3rem auto;
   border: 4px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #7cb342;
+  border-top-color: #9ccc65;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin .8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 @keyframes rise {
   from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: none; }
@@ -609,5 +620,7 @@ onUnmounted(stopAuto)
   .rail { gap: 2.5rem; }
   .compare { aspect-ratio: 4 / 5; }
   .knob { width: 42px; height: 42px; }
+  .status-banner { flex-direction: column; align-items: flex-start; }
+  .cta.compact { margin-left: 0; }
 }
 </style>
