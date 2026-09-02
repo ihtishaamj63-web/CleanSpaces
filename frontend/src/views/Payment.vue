@@ -58,12 +58,10 @@
               <div class="methods">
                 <label class="method" :class="{ active: method === 'card' }">
                   <input type="radio" value="card" v-model="method" />
-                  <span class="method-icon">💳</span>
                   <span>Card</span>
                 </label>
                 <label class="method" :class="{ active: method === 'eft' }">
                   <input type="radio" value="eft" v-model="method" />
-                  <span class="method-icon">🏦</span>
                   <span>EFT</span>
                 </label>
               </div>
@@ -77,6 +75,7 @@
               <button class="submit-btn" type="button" :disabled="loading || !selectedZoneId" @click="pay">
                 {{ loading ? 'Processing…' : `Pay R${perHousehold} Securely` }}
               </button>
+              <p class="secure">Payments processed securely by PayFast — PCI DSS Level 1 certified</p>
             </div>
           </div>
 
@@ -89,6 +88,20 @@
             </div>
             <p class="panel-zone" v-if="selectedZone">
               {{ selectedZone.name }} · {{ planInfo.label }}
+            </p>
+            <p class="panel-context" v-if="selectedZone">
+              Your share of a {{ planInfo.range }} zone, pooled with
+              {{ selectedZone.households }} households.
+            </p>
+
+            <div class="panel-divider"></div>
+
+            <p class="panel-label">How activation works</p>
+            <div class="activation-row">
+              <div class="activation-fill"></div>
+            </div>
+            <p class="panel-activation">
+              Once 60% of households have paid, weekly cleanups begin.
             </p>
 
             <div class="panel-divider"></div>
@@ -103,7 +116,6 @@
             <div class="panel-divider"></div>
 
             <div class="panel-trust">
-              <span>🔒</span>
               <div>
                 <strong>Secured by PayFast</strong>
                 <p>PCI DSS Level 1 certified</p>
@@ -111,7 +123,7 @@
             </div>
 
             <div class="panel-badge">
-              ✓ Pooled with {{ selectedZone?.households ?? '—' }} households in your zone
+              Pooled with {{ selectedZone?.households ?? '—' }} households in your zone
             </div>
           </aside>
         </div>
@@ -133,11 +145,11 @@ const paidZoneName = ref('')
 
 const zones = ref([])
 const selectedZoneId = ref(null)
+const myZoneId = ref(null)
 const method = ref('card')
 const loading = ref(false)
 const error = ref('')
 
-// Fallback zone matches the real DB row (zone 1) so demo data stays coherent
 const fallbackZones = [
   { id: 1, name: 'NY108 Block', neighborhood: 'Manenberg', households: 62, plan_type: 'small', status: 'active' },
 ]
@@ -152,12 +164,12 @@ const selectedZone = computed(() => zones.value.find(z => z.id === selectedZoneI
 const planInfo = computed(() => planInfoMap[selectedZone.value?.plan_type] || { label: '—', range: '—' })
 const perHousehold = computed(() => {
   if (!selectedZone.value) return '—'
-  const base = { small: 4000, medium: 7250, large: 11500 }[selectedZone.value.plan_type] || 0
+  const base = { small: 4000, medium: 7250, large: 11550 }[selectedZone.value.plan_type] || 0
   return Math.round(base / selectedZone.value.households)
 })
 
 onMounted(async () => {
-  // Double-payment guard: check status BEFORE showing the form
+  // Double-payment guard + zone pre-select: check status BEFORE showing the form
   try {
     const dash = await api.get('/resident/dashboard')
     if (dash.data.hasZone && dash.data.zone.myStatus === 'paid') {
@@ -165,6 +177,12 @@ onMounted(async () => {
       paidZoneName.value = dash.data.zone.name
       checking.value = false
       return
+    }
+    // Pre-select the resident's own zone if they have one
+    if (dash.data.hasZone) {
+      myZoneId.value = dash.data.zone.id ?? null
+      // dashboard response doesn't carry zone id — fall back to name matching below
+      myZoneName.value = dash.data.zone.name
     }
   } catch {
     // Dashboard unreachable — allow the payment attempt
@@ -178,9 +196,14 @@ onMounted(async () => {
   } catch {
     zones.value = fallbackZones
   }
-  selectedZoneId.value = zones.value[0]?.id ?? null
+
+  // Pre-select their zone by name if possible
+  const mine = zones.value.find(z => z.name === myZoneName.value)
+  selectedZoneId.value = (mine || zones.value[0])?.id ?? null
   checking.value = false
 })
+
+const myZoneName = ref('')
 
 async function pay() {
   loading.value = true
@@ -223,7 +246,6 @@ function submitToPayfast(url, params) {
 .section-heading { margin-bottom: 1.75rem; }
 .section-heading h1 { margin: 0 0 .4rem; font-size: 2.2rem; font-weight: 800; }
 
-/* States */
 .state-card { text-align: center; padding: 3.5rem 1.5rem; }
 .state-card h3 { margin: 0 0 .5rem; font-size: 1.35rem; }
 .state-card p { margin: 0 0 1.75rem; }
@@ -245,7 +267,6 @@ function submitToPayfast(url, params) {
 @keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Steps */
 .steps { display: flex; justify-content: center; gap: .6rem; flex-wrap: wrap; margin-bottom: 2rem; }
 .step {
   padding: .4rem 1.1rem; border-radius: 20px;
@@ -261,13 +282,12 @@ function submitToPayfast(url, params) {
   box-shadow: var(--shadow-green);
 }
 
-/* Split layout */
 .payment-layout {
   display: grid;
   grid-template-columns: 1fr 360px;
   gap: 1.75rem;
   align-items: start;
-  animation: fadeUp 0.45s ease-out both;
+  animation: slideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 .form-column { min-width: 0; }
 
@@ -296,10 +316,9 @@ function submitToPayfast(url, params) {
 }
 .zone-quick .row span:last-child { font-weight: 700; color: var(--green-dark); }
 
-/* Methods */
 .methods { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; margin-bottom: 1rem; }
 .method {
-  display: flex; align-items: center; gap: .7rem;
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
   padding: .95rem 1.2rem;
   background: white;
   border: 1.5px solid var(--border);
@@ -315,7 +334,6 @@ function submitToPayfast(url, params) {
   box-shadow: 0 0 0 4px rgba(124, 179, 66, 0.12);
 }
 .method input { display: none; }
-.method-icon { font-size: 1.3rem; }
 
 .note { margin: 0 0 1.5rem; color: var(--text-muted); font-size: .88rem; }
 .error-text { margin: 0 0 1rem; color: #d32f2f; font-size: .9rem; }
@@ -333,6 +351,7 @@ function submitToPayfast(url, params) {
 }
 .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(124, 179, 66, 0.5); }
 .submit-btn:disabled { opacity: .6; cursor: wait; transform: none; }
+.secure { margin: 1rem 0 0; text-align: center; color: var(--text-muted); font-size: .82rem; }
 
 /* Summary panel */
 .summary-panel {
@@ -344,6 +363,7 @@ function submitToPayfast(url, params) {
   top: 100px;
   box-shadow: 0 20px 50px rgba(11, 42, 37, 0.35);
   overflow: hidden;
+  border-left: 3px solid #7cb342;
 }
 .summary-panel::before {
   content: '';
@@ -355,36 +375,51 @@ function submitToPayfast(url, params) {
 }
 .panel-label {
   margin: 0 0 .3rem;
-  font-size: .8rem; font-weight: 600;
+  font-size: .78rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: .08em;
-  color: var(--text-muted-dark);
+  color: #9ccc65;
   font-family: var(--font-display);
 }
 .panel-amount {
   font-family: var(--font-display);
-  font-size: 3.2rem; font-weight: 800;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
 }
-.panel-amount .currency { font-size: 1.6rem; font-weight: 700; margin-right: .1rem; }
-.panel-amount .period { font-size: .95rem; font-weight: 500; color: var(--text-muted-dark); letter-spacing: 0; }
-.panel-zone { margin: .8rem 0 0; color: var(--text-muted-dark); font-size: .92rem; }
+.panel-amount .currency { font-size: 1.5rem; font-weight: 700; margin-right: .1rem; }
+.panel-amount .period { font-size: .95rem; font-weight: 500; color: #a0b0ac; letter-spacing: 0; }
+.panel-zone { margin: .8rem 0 0; color: #a0b0ac; font-size: .92rem; }
+.panel-context { margin: .3rem 0 0; color: #a0b0ac; font-size: .85rem; }
 
 .panel-divider {
-  height: 1px; margin: 1.5rem 0;
+  height: 1px; margin: 1.4rem 0;
   background: linear-gradient(90deg, rgba(255,255,255,0.15), transparent);
 }
+
+/* Activation mini-bar in panel */
+.activation-row {
+  height: 6px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  margin: .5rem 0 .5rem;
+}
+.activation-fill {
+  height: 100%; width: 60%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7cb342, #9ccc65);
+  box-shadow: 0 0 10px rgba(124, 179, 66, 0.5);
+}
+.panel-activation { margin: 0; font-size: .84rem; color: #a0b0ac; }
 
 .panel-includes { list-style: none; margin: 0; padding: 0; display: grid; gap: .65rem; }
 .panel-includes li { font-size: .92rem; }
 
-.panel-trust { display: flex; gap: .9rem; align-items: center; }
-.panel-trust span { font-size: 1.6rem; }
 .panel-trust strong { display: block; font-size: .95rem; font-family: var(--font-display); }
-.panel-trust p { margin: 0; font-size: .8rem; color: var(--text-muted-dark); }
+.panel-trust p { margin: 0; font-size: .8rem; color: #a0b0ac; }
 
 .panel-badge {
-  margin-top: 1.5rem;
+  margin-top: 1.4rem;
   padding: .8rem 1rem;
   background: rgba(124, 179, 66, 0.15);
   border: 1px solid rgba(124, 179, 66, 0.3);
@@ -395,15 +430,14 @@ function submitToPayfast(url, params) {
 
 .muted-text { color: var(--text-muted); }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: none; }
 }
 
 @media (max-width: 900px) {
   .payment-layout { grid-template-columns: 1fr; }
-  .summary-panel { position: static; order: -1; }
-  .panel-amount { font-size: 2.6rem; }
+  .summary-panel { position: static; order: -1; border-left: 0; }
 }
 @media (max-width: 600px) {
   .section-heading h1 { font-size: 1.7rem; }

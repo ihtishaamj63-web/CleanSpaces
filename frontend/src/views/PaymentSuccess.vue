@@ -19,6 +19,20 @@
           <div class="row"><span>Method</span><span>{{ payment.method }}</span></div>
         </div>
 
+        <!-- What happens next -->
+        <div class="next-steps" v-if="zoneProgress">
+          <div class="next-bar">
+            <div class="next-fill" :style="{ width: zoneProgress.pct + '%' }"></div>
+          </div>
+          <p class="next-text" v-if="zoneProgress.activated">
+            Your zone is active — weekly cleanups are running.
+          </p>
+          <p class="next-text" v-else>
+            Your zone activates at 60% paid — currently {{ zoneProgress.pct }}%
+            ({{ zoneProgress.remaining }} more households to go).
+          </p>
+        </div>
+
         <router-link to="/resident/dashboard" class="submit-btn">
           Go to My Dashboard →
         </router-link>
@@ -38,6 +52,7 @@ import api from '../api.js'
 
 const route = useRoute()
 const payment = ref(null)
+const zoneProgress = ref(null)
 
 onMounted(async () => {
   try {
@@ -45,6 +60,22 @@ onMounted(async () => {
     payment.value = res.data
   } catch {
     payment.value = { id: route.params.id, amount: '—', method: '—' }
+  }
+
+  // What happens next: fetch zone activation progress
+  try {
+    const dash = await api.get('/resident/dashboard')
+    if (dash.data.hasZone) {
+      const z = dash.data.zone
+      const pct = Math.min(100, Math.round((z.paid / z.threshold) * 100))
+      zoneProgress.value = {
+        pct,
+        remaining: Math.max(0, z.threshold - z.paid),
+        activated: z.paid >= z.threshold
+      }
+    }
+  } catch {
+    // dashboard unreachable — skip the next-steps block silently
   }
 })
 </script>
@@ -73,6 +104,7 @@ onMounted(async () => {
   color: #f4f6f5;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid #7cb342;
   box-shadow: 0 25px 60px rgba(11, 42, 37, 0.45);
   text-align: center;
   position: relative;
@@ -90,7 +122,7 @@ onMounted(async () => {
   margin: 0 0 .3rem; font-size: 1.8rem; font-weight: 800;
   text-transform: uppercase; letter-spacing: .02em; color: #f4f6f5;
 }
-.brand-title span { color: #7cb342; }
+.brand-title span { color: #9ccc65; }
 .tagline { margin: 0; color: #a0b0ac; font-size: .9rem; }
 
 .check {
@@ -105,7 +137,7 @@ onMounted(async () => {
 .confirm-title { margin: 0 0 .4rem; font-size: 1.45rem; color: #f4f6f5; }
 .confirm-text { margin: 0 0 1.5rem; color: #a0b0ac; font-size: .95rem; }
 
-.details { text-align: left; margin: 0 0 1.75rem; }
+.details { text-align: left; margin: 0 0 1.25rem; }
 .details .row {
   display: flex; justify-content: space-between;
   padding: .8rem 0;
@@ -114,10 +146,35 @@ onMounted(async () => {
   animation: fadeUp 0.4s ease-out forwards;
 }
 .details .row:nth-child(1) { animation-delay: 0.4s; }
-.details .row:nth-child(2) { animation-delay: 0.55s; }
-.details .row:nth-child(3) { animation-delay: 0.7s; }
+.details .row:nth-child(2) { animation-delay: 0.6s; }
+.details .row:nth-child(3) { animation-delay: 0.8s; }
 .details .row span:first-child { color: #a0b0ac; }
 .details .row span:last-child { font-weight: 700; }
+
+/* What happens next */
+.next-steps {
+  padding: 1.1rem 1.25rem;
+  background: rgba(124, 179, 66, 0.08);
+  border: 1px solid rgba(124, 179, 66, 0.25);
+  border-radius: 12px;
+  margin: 0 0 1.5rem;
+  opacity: 0;
+  animation: fadeUp 0.4s ease-out 1s forwards;
+  text-align: left;
+}
+.next-bar {
+  height: 6px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  margin-bottom: .6rem;
+}
+.next-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #7cb342, #9ccc65);
+  box-shadow: 0 0 10px rgba(124, 179, 66, 0.5);
+  transition: width 1s cubic-bezier(0.22, 1, 0.36, 1) 1.2s;
+}
+.next-text { margin: 0; font-size: .88rem; color: #d7e4de; }
 
 .submit-btn {
   display: block; width: 100%; padding: 1rem;
@@ -130,7 +187,7 @@ onMounted(async () => {
   box-shadow: 0 6px 18px rgba(124, 179, 66, 0.4);
   transition: all 0.25s ease;
   opacity: 0;
-  animation: fadeUp 0.4s ease-out 0.85s forwards;
+  animation: fadeUp 0.4s ease-out 1.2s forwards;
 }
 .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(124, 179, 66, 0.55); }
 
