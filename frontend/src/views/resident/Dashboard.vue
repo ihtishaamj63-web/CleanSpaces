@@ -1,159 +1,137 @@
 <template>
-  <div class="resident-page">
-    <section class="resident-wrap">
-      <div class="section-heading">
-        <h1>My Dashboard</h1>
-        <p>Your zone, payments and cleanup results at a glance.</p>
-      </div>
+  <div class="dash">
+    <!-- AMBIENT LIGHT -->
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
 
-      <div v-if="loading" class="card state-card">
+    <!-- HERO -->
+    <header class="hero">
+      <p class="eyebrow">My Zone</p>
+      <h1>{{ data.hasZone ? data.zone.name : 'Join A Zone' }}</h1>
+      <p class="hero-sub">
+        {{ data.hasZone
+          ? `${data.zone.neighborhood} · ${data.zone.households} households`
+          : 'Pool with your street. Fund your cleanups.' }}
+      </p>
+    </header>
+
+    <main class="rail">
+      <!-- LOADING -->
+      <div v-if="loading" class="block">
         <div class="spinner"></div>
-        <p class="muted-text">Loading your dashboard…</p>
       </div>
 
-      <div v-else-if="loadError" class="card state-card">
-        <div class="state-icon">⚠</div>
-        <h3>Couldn't load your dashboard</h3>
-        <p class="muted-text">Is the backend running? Refresh once it's up.</p>
-        <button class="btn-secondary" @click="load">Try Again</button>
+      <!-- OFFLINE -->
+      <div v-else-if="loadError" class="block">
+        <h2 class="block-title">Offline</h2>
+        <p class="sub">Couldn't reach CleanSpaces. <button class="text-btn" @click="load">Retry</button></p>
       </div>
 
-      <div v-else-if="!data.hasZone" class="card state-card">
-        <div class="state-icon">📍</div>
-        <h2>You're not part of a zone yet</h2>
-        <p class="muted-text">Register your zone or join an existing one to start your subscription.</p>
-        <router-link to="/how-it-works" class="btn-primary">Register Your Zone</router-link>
+      <!-- NO ZONE -->
+      <div v-else-if="!data.hasZone" class="block">
+        <h2 class="block-title">Get Started</h2>
+        <p class="big-sub">You're not part of a zone yet.</p>
+        <p class="sub">Register your street and start pooling with your neighbours.</p>
+        <router-link to="/how-it-works" class="cta">Register Your Zone →</router-link>
       </div>
 
       <template v-else>
-        <div class="tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            class="tab-btn"
-            :class="{ active: activeTab === tab.key }"
-            @click="activeTab = tab.key"
-          >
-            {{ tab.label }}
-          </button>
-        </div>
-
-        <!-- MY ZONE -->
-        <div v-show="activeTab === 'zone'" class="card zone-card">
-          <div class="zone-head">
-            <div>
-              <h2>{{ data.zone.name }}</h2>
-              <p class="zone-sub">{{ data.zone.neighborhood }} · {{ planLabel }} Zone</p>
+        <!-- ACTIVATION -->
+        <section class="block">
+          <div class="stat-line">
+            <span class="mega">{{ data.zone.paid }}</span>
+            <div class="stat-context">
+              <span class="stat-strong">of {{ data.zone.threshold }} households paid</span>
+              <span class="sub">{{ remaining }} to go until activation</span>
             </div>
-            <span class="status-badge" :class="data.zone.myStatus === 'paid' ? 'paid' : 'pending'">
-              {{ data.zone.myStatus === 'paid' ? '✓ Paid This Month' : 'Payment Pending' }}
+          </div>
+
+          <div class="bar">
+            <div class="bar-fill" :style="{ width: progressDisplay + '%' }"></div>
+          </div>
+
+          <div class="action-row">
+            <span class="status-line" :class="data.zone.myStatus">
+              {{ data.zone.myStatus === 'paid' ? '● You\'ve paid this month' : '● Payment due' }}
             </span>
+            <router-link v-if="data.zone.myStatus !== 'paid'" to="/payment" class="cta">
+              Pay R{{ perMonth }} →
+            </router-link>
           </div>
+        </section>
 
-          <div class="progress-block">
-            <div class="progress-labels">
-              <span><strong>{{ data.zone.paid }}</strong> of {{ data.zone.threshold }} households paid</span>
-              <span class="muted-text">Zone activates at {{ data.zone.threshold }} (60% of {{ data.zone.households }})</span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-fill" :style="{ width: progressDisplay + '%' }"></div>
-            </div>
-            <p class="progress-note">
-              <template v-if="progressPct >= 100">🎉 Threshold reached — weekly cleanups are active!</template>
-              <template v-else>{{ data.zone.threshold - data.zone.paid }} more households needed to activate.</template>
-            </p>
-          </div>
-
-          <router-link v-if="data.zone.myStatus !== 'paid'" to="/payment" class="btn-primary pay-cta">
-            Pay My Contribution →
-          </router-link>
-        </div>
-
-        <!-- PAYMENTS -->
-        <div v-show="activeTab === 'payments'" class="card">
-          <h3>Payment History</h3>
-          <div class="table-responsive">
-            <table v-if="payments.length">
-              <thead>
-                <tr>
-                  <th>Reference</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="p in payments" :key="p.id">
-                  <td>
-                    <router-link :to="`/payment/success/${p.id}`" class="ref-link">
-                      #CS-{{ String(p.id).padStart(5, '0') }}
-                    </router-link>
-                  </td>
-                  <td class="amount">R{{ p.amount }}</td>
-                  <td>{{ p.method }}</td>
-                  <td><span class="status-badge sm" :class="p.status">{{ p.status }}</span></td>
-                  <td class="muted-text">{{ formatDate(p.created_at) }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-else class="empty-table">
-              <p class="muted-text">No payments yet.</p>
-              <router-link to="/payment" class="btn-secondary">Make your first payment</router-link>
-            </div>
-          </div>
-        </div>
+        <hr class="rule" />
 
         <!-- CLEANUPS -->
-        <div v-show="activeTab === 'cleanups'" class="card">
-          <h3>Recent Cleanups</h3>
+        <section class="block">
+          <h2 class="block-title">Cleanups</h2>
 
-          <swiper
-            v-if="cleanups.length"
-            :modules="modules"
-            :slides-per-view="1"
-            :space-between="24"
-            :pagination="{ clickable: true }"
-            :autoplay="{ delay: 5000, disableOnInteraction: true }"
-            :grab-cursor="true"
-          >
-            <swiper-slide v-for="c in cleanups" :key="c.id">
-              <div class="ba-compare">
-                <div class="ba-frame">
-                  <img :src="c.before_url" alt="Before cleanup" loading="lazy" />
-                  <span class="ba-label before">Before</span>
-                </div>
-                <div class="ba-frame">
-                  <img :src="c.after_url" alt="After cleanup" loading="lazy" />
-                  <span class="ba-label after">After</span>
-                </div>
+          <template v-if="cleanups.length">
+            <div class="chips">
+              <button
+                v-for="(c, i) in cleanups" :key="c.id"
+                class="chip" :class="{ on: i === currentCleanup }"
+                @click="selectCleanup(i)"
+              >{{ formatDate(c.date_cleaned) }}</button>
+            </div>
+
+            <div
+              class="compare"
+              @pointerdown="dragging = true"
+              @pointermove="onDrag"
+              @pointerup="dragging = false"
+              @pointerleave="dragging = false"
+              @touchmove.prevent="onDrag"
+            >
+              <img class="img-before" :src="current.before_url" alt="Before cleanup" draggable="false" />
+              <img
+                class="img-after"
+                :src="current.after_url"
+                alt="After cleanup"
+                draggable="false"
+                :style="{ clipPath: 'inset(0 ' + (100 - pos) + '% 0 0)' }"
+              />
+              <div class="handle" :style="{ left: pos + '%' }">
+                <div class="knob">⇄</div>
               </div>
-              <p class="caption">{{ c.notes }}</p>
-              <p class="muted-text sm">Completed {{ formatDate(c.date_cleaned) }}</p>
-            </swiper-slide>
-          </swiper>
+              <span class="tag after">After</span>
+              <span class="tag before">Before</span>
+            </div>
 
-          <div v-else class="empty-table">
-            <p class="muted-text">No cleanups recorded for your zone yet.</p>
-          </div>
-        </div>
+            <p class="compare-hint">drag anywhere on the image</p>
+            <p class="notes">{{ current.notes }}</p>
+          </template>
+
+          <p v-else class="sub">No cleanups recorded yet — your zone's first one is coming.</p>
+        </section>
+
+        <hr class="rule" />
+
+        <!-- PAYMENTS -->
+        <section class="block">
+          <h2 class="block-title">Payments</h2>
+          <template v-if="payments.length">
+            <div v-for="p in payments" :key="p.id" class="ledger-row">
+              <router-link :to="`/payment/success/${p.id}`" class="ref">
+                #CS-{{ String(p.id).padStart(5, '0') }}
+              </router-link>
+              <span class="ledger-meta">{{ formatDate(p.created_at) }} · {{ p.method }}</span>
+              <span class="ledger-status" :class="p.status">{{ p.status }}</span>
+              <span class="amount">R{{ p.amount }}</span>
+            </div>
+          </template>
+          <p v-else class="sub">
+            No payments yet. <router-link to="/payment" class="text-link">Make your first →</router-link>
+          </p>
+        </section>
       </template>
-    </section>
+    </main>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Pagination, Autoplay } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/pagination'
 import api from '../../api.js'
-
-const modules = [Pagination, Autoplay]
-
-const tabs = [
-  { key: 'zone', label: 'My Zone' },
-  { key: 'payments', label: 'Payments' },
-  { key: 'cleanups', label: 'Cleanups' }
-]
-const activeTab = ref('zone')
 
 const loading = ref(true)
 const loadError = ref(false)
@@ -162,9 +140,16 @@ const payments = ref([])
 const cleanups = ref([])
 const progressDisplay = ref(0)
 
-const planLabel = computed(() => {
-  const plan = data.value.zone?.plan
-  return { small: 'Small', medium: 'Medium', large: 'Large' }[plan] || ''
+const currentCleanup = ref(0)
+const pos = ref(50)
+const dragging = ref(false)
+
+const current = computed(() => cleanups.value[currentCleanup.value] || {})
+
+const perMonth = computed(() => {
+  if (!data.value.hasZone) return '—'
+  const base = { small: 4000, medium: 7250, large: 11500 }[data.value.zone.plan] || 0
+  return Math.round(base / data.value.zone.households)
 })
 
 const progressPct = computed(() => {
@@ -172,6 +157,23 @@ const progressPct = computed(() => {
   if (!z || !z.threshold) return 0
   return Math.min(Math.round((z.paid / z.threshold) * 100), 100)
 })
+
+const remaining = computed(() => {
+  const z = data.value.zone
+  return z ? Math.max(0, z.threshold - z.paid) : 0
+})
+
+function selectCleanup(i) {
+  currentCleanup.value = i
+  pos.value = 50
+}
+
+function onDrag(e) {
+  if (e.type === 'pointermove' && !dragging.value) return
+  const rect = e.currentTarget.getBoundingClientRect()
+  const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left
+  pos.value = Math.min(97, Math.max(3, (x / rect.width) * 100))
+}
 
 function formatDate(d) {
   if (!d) return '—'
@@ -194,9 +196,8 @@ async function load() {
       cleanups.value = res.data
     }
 
-    // Animate the progress bar after render
     await nextTick()
-    setTimeout(() => { progressDisplay.value = progressPct.value }, 200)
+    setTimeout(() => { progressDisplay.value = progressPct.value }, 300)
   } catch {
     loadError.value = true
   } finally {
@@ -208,149 +209,291 @@ onMounted(load)
 </script>
 
 <style scoped>
-.resident-page { min-height: 100vh; padding: 3rem 1rem 5rem; }
-.resident-wrap { max-width: 900px; margin: 0 auto; }
+.dash {
+  position: relative;
+  min-height: 100vh;
+  background: #0b2a25;
+  color: #f4f6f5;
+  overflow-x: hidden;
+}
 
-/* States */
-.state-card { text-align: center; padding: 3.5rem 1.5rem; }
-.state-card h2, .state-card h3 { margin: 0 0 .5rem; }
-.state-card p { margin: 0 0 1.75rem; }
-.state-icon { font-size: 2.5rem; margin-bottom: 1rem; }
-.spinner {
-  width: 42px; height: 42px; margin: 0 auto 1.25rem;
-  border: 4px solid var(--green-tint);
-  border-top-color: var(--green);
+/* AMBIENT LIGHT — the depth trick from Apple/Loopy product pages */
+.glow {
+  position: absolute;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  filter: blur(90px);
+  pointer-events: none;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Tabs */
-.tabs { display: flex; gap: .5rem; margin-bottom: 1.75rem; flex-wrap: wrap; }
-.tab-btn {
-  padding: .65rem 1.6rem;
-  background: white;
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  font-weight: 700;
-  font-family: var(--font-display);
-  font-size: .9rem;
-  cursor: pointer;
-  transition: all 0.25s ease;
+.glow-a {
+  width: 640px; height: 640px;
+  top: -220px; right: -140px;
+  background: rgba(124, 179, 66, 0.16);
 }
-.tab-btn:hover { color: var(--green-dark); border-color: var(--green); }
-.tab-btn.active {
-  color: var(--green-deeper);
-  background: linear-gradient(135deg, var(--green), var(--green-deep));
-  border-color: transparent;
-  box-shadow: var(--shadow-green);
+.glow-b {
+  width: 520px; height: 520px;
+  bottom: -160px; left: -180px;
+  background: rgba(42, 74, 67, 0.55);
 }
 
-/* Zone card */
-.zone-card { animation: fadeUp 0.45s ease-out both; }
-.zone-head {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem;
+/* HERO */
+.hero {
+  position: relative;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 5rem 1.5rem 2.5rem;
 }
-.zone-head h2 { margin: 0; font-size: 1.6rem; font-weight: 800; }
-.zone-sub { margin: .3rem 0 0; color: var(--text-muted); font-size: .95rem; }
+.eyebrow {
+  margin: 0 0 .7rem;
+  font-family: 'Sora', sans-serif;
+  font-size: .78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .22em;
+  color: #7cb342;
+}
+.hero h1 {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(2.6rem, 6.5vw, 4.4rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+}
+.hero-sub { margin: 1rem 0 0; color: #a0b0ac; font-size: 1.08rem; }
 
-.status-badge {
-  padding: .4rem 1rem; border-radius: 20px;
-  font-size: .8rem; font-weight: 700; white-space: nowrap;
+/* RAIL */
+.rail {
+  position: relative;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1.5rem 6rem;
+  display: grid;
+  gap: 3.25rem;
 }
-.status-badge.paid, .status-badge.completed { color: #1b5e20; background: #d4edda; }
-.status-badge.pending { color: #856404; background: #fff3cd; }
-.status-badge.failed { color: #721c24; background: #f8d7da; }
-.status-badge.sm { padding: .2rem .7rem; font-size: .75rem; }
+.block { animation: rise .65s cubic-bezier(.22, 1, .36, 1) both; }
+.block:nth-child(2) { animation-delay: .08s; }
+.block:nth-child(3) { animation-delay: .16s; }
 
-/* Progress */
-.progress-block { margin-bottom: 1.75rem; }
-.progress-labels {
-  display: flex; justify-content: space-between;
-  font-size: .92rem; margin-bottom: .6rem; flex-wrap: wrap; gap: .3rem;
+.block-title {
+  margin: 0 0 1.5rem;
+  font-family: 'Sora', sans-serif;
+  font-size: .92rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .16em;
+  color: #7cb342;
 }
-.progress-labels strong { color: var(--green-dark); font-size: 1.05rem; }
-.progress-track {
-  height: 16px; background: var(--green-tint);
-  border-radius: 20px; overflow: hidden;
-  box-shadow: inset 0 1px 3px rgba(18, 51, 45, 0.1);
+.sub { color: #a0b0ac; margin: .4rem 0 0; font-size: .95rem; }
+.big-sub { color: #f4f6f5; font-size: 1.35rem; font-weight: 700; margin: 0; font-family: 'Sora', sans-serif; }
+.text-btn { background: none; border: 0; color: #7cb342; font: inherit; font-weight: 600; cursor: pointer; }
+.text-link { color: #7cb342; font-weight: 600; text-decoration: none; }
+
+.rule { border: 0; border-top: 1px solid #1d3b35; margin: 0; }
+
+/* ACTIVATION */
+.stat-line { display: flex; align-items: baseline; gap: 1.4rem; flex-wrap: wrap; }
+.mega {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(3.6rem, 11vw, 7rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  background: linear-gradient(180deg, #f4f6f5 30%, #a0b0ac 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
-.progress-fill {
+.stat-context { display: grid; gap: .15rem; }
+.stat-strong { font-weight: 700; font-size: 1.18rem; font-family: 'Sora', sans-serif; }
+
+.bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 2rem 0 1.25rem;
+  overflow: hidden;
+}
+.bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--green) 0%, #4caf50 60%, #66bb6a 100%);
-  border-radius: 20px;
-  box-shadow: 0 0 12px rgba(124, 179, 66, 0.5);
-  transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.progress-note { margin: .7rem 0 0; color: var(--text-muted); font-size: .9rem; }
-
-.pay-cta { margin-top: .5rem; }
-
-/* Payments table */
-.table-responsive { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; text-align: left; }
-th {
-  padding: .85rem 1rem;
-  color: var(--text-muted);
-  font-family: var(--font-display);
-  font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;
-  border-bottom: 2px solid var(--border);
-}
-td { padding: 1rem; border-bottom: 1px solid #f0f2f0; font-size: .95rem; }
-tr { transition: background 0.2s; }
-tbody tr:hover { background: rgba(124, 179, 66, 0.04); }
-.amount { font-weight: 700; color: var(--green-dark); }
-.ref-link {
-  color: var(--green-dark); font-weight: 700; text-decoration: none;
-  border-bottom: 2px solid var(--green);
-  transition: color 0.2s;
-}
-.ref-link:hover { color: var(--green-deep); }
-.empty-table { text-align: center; padding: 2.5rem 0; }
-
-/* Cleanup carousel */
-.ba-compare { display: flex; gap: .75rem; }
-.ba-frame {
-  position: relative; flex: 1; overflow: hidden;
-  border-radius: 14px;
-  box-shadow: var(--shadow-md);
-}
-.ba-frame img {
-  width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block;
-  transition: transform 0.5s ease;
-}
-.ba-frame:hover img { transform: scale(1.05); }
-.ba-label {
-  position: absolute; bottom: .8rem; left: .8rem;
-  padding: .25rem .8rem; border-radius: 20px;
-  font-size: .75rem; font-weight: 700; color: white;
-  backdrop-filter: blur(4px);
-}
-.ba-label.before { background: rgba(114, 28, 36, 0.85); }
-.ba-label.after { background: rgba(104, 159, 56, 0.9); }
-.caption { margin: 1rem 0 .2rem; font-size: .95rem; }
-
-:deep(.swiper-pagination) { position: relative; margin-top: 1.25rem; }
-:deep(.swiper-pagination-bullet) {
-  background: #c5cec9; opacity: 1; width: 10px; height: 10px;
-  transition: all 0.25s;
-}
-:deep(.swiper-pagination-bullet-active) {
-  background: var(--green); width: 26px; border-radius: 5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7cb342, #66bb6a);
+  box-shadow: 0 0 20px rgba(124, 179, 66, 0.55);
+  transition: width 1.3s cubic-bezier(.22, 1, .36, 1);
 }
 
-.muted-text { color: var(--text-muted); }
-.muted-text.sm { font-size: .85rem; margin: 0; }
+.action-row {
+  display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+}
+.status-line {
+  font-size: .88rem; font-weight: 600;
+  letter-spacing: .02em;
+}
+.status-line.paid { color: #7cb342; }
+.status-line.pending { color: #ffca7a; }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
+/* CTA */
+.cta {
+  display: inline-block;
+  padding: .95rem 2.3rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7cb342, #689f38);
+  color: #0b2a25;
+  font-family: 'Sora', sans-serif;
+  font-weight: 700; font-size: 1.02rem;
+  text-decoration: none;
+  box-shadow: 0 6px 26px rgba(124, 179, 66, 0.4);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 36px rgba(124, 179, 66, 0.55);
+}
+
+/* CLEANUPS */
+.chips { display: flex; gap: .55rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.chip {
+  padding: .5rem 1.25rem;
+  border-radius: 999px;
+  background: transparent;
+  color: #a0b0ac;
+  border: 1px solid #2a4a43;
+  font-family: 'Sora', sans-serif;
+  font-size: .82rem; font-weight: 600;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.chip:hover { border-color: #7cb342; color: #f4f6f5; }
+.chip.on {
+  background: #7cb342;
+  color: #0b2a25;
+  border-color: #7cb342;
+  box-shadow: 0 4px 14px rgba(124, 179, 66, 0.35);
+}
+
+/* DRAG-TO-COMPARE */
+.compare {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+.compare img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+.img-before { z-index: 1; }
+.img-after { z-index: 2; }
+
+.handle {
+  position: absolute; top: 0; bottom: 0;
+  z-index: 4;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.handle::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: -1.5px;
+  width: 3px;
+  background: #fff;
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.7);
+}
+.knob {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7cb342, #689f38);
+  color: #0b2a25;
+  display: grid; place-items: center;
+  font-size: 1.25rem; font-weight: 800;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5), 0 0 0 5px rgba(255, 255, 255, 0.12);
+  transition: transform .2s ease;
+}
+.compare:active .knob { transform: translate(-50%, -50%) scale(1.14); }
+
+.tag {
+  position: absolute; bottom: 1.1rem;
+  z-index: 5;
+  padding: .38rem 1.05rem;
+  border-radius: 999px;
+  font-size: .72rem; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+.tag.after  { left: 1.1rem; background: rgba(104, 159, 56, 0.85); color: #fff; }
+.tag.before { right: 1.1rem; background: rgba(15, 15, 15, 0.6); color: #fff; }
+
+.compare-hint {
+  margin: .8rem 0 0;
+  text-align: center;
+  color: #6a7a76;
+  font-size: .75rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.notes { margin: 1.1rem 0 0; font-size: 1.05rem; color: #d7e4de; max-width: 60ch; }
+
+/* PAYMENTS LEDGER */
+.ledger-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid #1d3b35;
+  flex-wrap: wrap;
+}
+.ref {
+  color: #f4f6f5;
+  font-weight: 700;
+  font-family: 'Sora', sans-serif;
+  text-decoration: none;
+  border-bottom: 2px solid #7cb342;
+  transition: color .2s;
+}
+.ref:hover { color: #7cb342; }
+.ledger-meta { color: #a0b0ac; font-size: .9rem; }
+.ledger-status {
+  margin-left: auto;
+  padding: .28rem .85rem;
+  border-radius: 999px;
+  font-size: .72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.ledger-status.completed { color: #7cb342; background: rgba(124, 179, 66, 0.13); }
+.ledger-status.pending { color: #ffca7a; background: rgba(255, 202, 122, 0.1); }
+.ledger-status.failed { color: #ff8a80; background: rgba(255, 138, 128, 0.1); }
+.amount {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* SPINNER */
+.spinner {
+  width: 44px; height: 44px;
+  margin: 3rem auto;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #7cb342;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: none; }
 }
 
-@media (max-width: 600px) {
-  .ba-compare { flex-direction: column; }
-  th, td { padding: .7rem .5rem; }
+@media (max-width: 640px) {
+  .hero { padding-top: 3.5rem; }
+  .rail { gap: 2.5rem; }
+  .compare { aspect-ratio: 4 / 5; }
+  .knob { width: 42px; height: 42px; }
 }
 </style>
