@@ -1,64 +1,151 @@
-import { Router } from 'express'
-import db from '../db.js'
+<template>
+  <div class="auth-page">
+    <div class="glow"></div>
+    <div class="auth-card">
+      <div class="logo-section">
+        <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="CleanSpaces Logo" class="logo" />
+        <h1 class="brand-title">CLEAN<span>SPACES</span></h1>
+        <p class="tagline">Cleaner Spaces. Stronger Communities.</p>
+      </div>
 
-const router = Router()
+      <div v-if="payment" class="confirmation">
+        <div class="check">✓</div>
+        <h2 class="confirm-title">Payment Successful</h2>
+        <p class="confirm-text">Thank you! Your contribution to your zone has been received.</p>
 
-router.get('/dashboard', async (req, res) => {
+        <div class="details">
+          <div class="row"><span>Reference</span><span>#CS-{{ String(payment.id).padStart(5, '0') }}</span></div>
+          <div class="row"><span>Amount</span><span>R{{ payment.amount }}</span></div>
+          <div class="row"><span>Method</span><span>{{ payment.method }}</span></div>
+        </div>
+
+        <router-link to="/resident/dashboard" class="submit-btn">
+          Go to My Dashboard →
+        </router-link>
+      </div>
+      <div v-else class="loading-state">
+        <div class="spinner"></div>
+        <p class="loading-text">Loading your payment…</p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import api from '../api.js'
+
+const route = useRoute()
+const payment = ref(null)
+
+onMounted(async () => {
   try {
-    const userId = req.user ? req.user.id : 2
-
-    const [member] = await db.query(
-      `SELECT zm.*, z.name AS zone_name, z.plan_type, z.households, z.neighborhood
-       FROM zone_members zm JOIN zones z ON z.id = zm.zone_id
-       WHERE zm.user_id = ?`, [userId])
-
-    if (member.length === 0) return res.json({ hasZone: false })
-
-    const zone = member[0]
-    const [paid] = await db.query(
-      "SELECT COUNT(*) AS c FROM zone_members WHERE zone_id = ? AND payment_status = 'paid'", [zone.zone_id])
-
-    const threshold = Math.ceil(zone.households * 0.6)
-
-    res.json({
-      hasZone: true,
-      zone: {
-        name: zone.zone_name,
-        neighborhood: zone.neighborhood,
-        plan: zone.plan_type,
-        households: zone.households,
-        paid: paid[0].c,
-        threshold,
-        myStatus: zone.payment_status
-      }
-    })
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' })
-  }
-})
-
-router.get('/payments', async (req, res) => {
-  try {
-    const userId = req.user ? req.user.id : 2
-    const [rows] = await db.query(
-      'SELECT * FROM payments WHERE user_id = ? ORDER BY created_at DESC', [userId])
-    res.json(rows)
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' })
-  }
-})
-
-router.get('/cleanups', async (req, res) => {
-  try {
-    const userId = req.user ? req.user.id : 2
-    const [rows] = await db.query(
-      `SELECT cr.* FROM cleanup_reports cr
-       JOIN zone_members zm ON zm.zone_id = cr.zone_id
-       WHERE zm.user_id = ? ORDER BY cr.date_cleaned DESC`, [userId])
-    res.json(rows)
+    const res = await api.get(`/payments/return/${route.params.id}`)
+    payment.value = res.data
   } catch {
-    res.status(500).json({ error: 'Server error' })
+    payment.value = { id: route.params.id, amount: '—', method: '—' }
   }
 })
+</script>
 
-export default router
+<style scoped>
+.auth-page {
+  min-height: 100vh;
+  display: grid; place-items: center;
+  padding: 2rem 1rem;
+  position: relative;
+  overflow: hidden;
+}
+.glow {
+  position: absolute;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 179, 66, 0.18) 0%, transparent 70%);
+  top: -150px; left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.auth-card {
+  width: min(100%, 460px);
+  padding: 2.75rem;
+  background: linear-gradient(165deg, #12332d 0%, #0b2a25 100%);
+  color: #f4f6f5;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 60px rgba(11, 42, 37, 0.45);
+  text-align: center;
+  position: relative;
+  animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.logo-section { margin-bottom: 1.75rem; }
+.logo {
+  width: 84px; height: 84px; object-fit: contain;
+  margin-bottom: .6rem;
+  background: white; padding: 6px; border-radius: 50%;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+.brand-title {
+  margin: 0 0 .3rem; font-size: 1.8rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .02em; color: #f4f6f5;
+}
+.brand-title span { color: #7cb342; }
+.tagline { margin: 0; color: #a0b0ac; font-size: .9rem; }
+
+.check {
+  width: 72px; height: 72px; line-height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7cb342, #689f38);
+  color: #0b2a25; font-size: 36px; font-weight: 800;
+  margin: 0 auto 1.1rem;
+  box-shadow: 0 8px 24px rgba(124, 179, 66, 0.45);
+  animation: pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+.confirm-title { margin: 0 0 .4rem; font-size: 1.45rem; color: #f4f6f5; }
+.confirm-text { margin: 0 0 1.5rem; color: #a0b0ac; font-size: .95rem; }
+
+.details { text-align: left; margin: 0 0 1.75rem; }
+.details .row {
+  display: flex; justify-content: space-between;
+  padding: .8rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  animation: fadeUp 0.4s ease-out forwards;
+}
+.details .row:nth-child(1) { animation-delay: 0.4s; }
+.details .row:nth-child(2) { animation-delay: 0.55s; }
+.details .row:nth-child(3) { animation-delay: 0.7s; }
+.details .row span:first-child { color: #a0b0ac; }
+.details .row span:last-child { font-weight: 700; }
+
+.submit-btn {
+  display: block; width: 100%; padding: 1rem;
+  color: #0b2a25;
+  background: linear-gradient(135deg, #7cb342 0%, #689f38 100%);
+  border: 0; border-radius: 10px;
+  font-weight: 800; font-size: 1rem;
+  font-family: 'Sora', sans-serif;
+  cursor: pointer; text-decoration: none;
+  box-shadow: 0 6px 18px rgba(124, 179, 66, 0.4);
+  transition: all 0.25s ease;
+  opacity: 0;
+  animation: fadeUp 0.4s ease-out 0.85s forwards;
+}
+.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(124, 179, 66, 0.55); }
+
+.loading-state { padding: 2rem 0; }
+.spinner {
+  width: 42px; height: 42px; margin: 0 auto 1rem;
+  border: 4px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #7cb342;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.loading-text { color: #a0b0ac; }
+
+@keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes cardIn { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: none; } }
+</style>

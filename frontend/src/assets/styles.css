@@ -1,6 +1,8 @@
-/* ============ CleanSpaces shared design tokens ============ */
+/* ============ CleanSpaces Design System v2 ============ */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
-  /* Krish's theme palette (kept for any existing references) */
+  /* Legacy palette (kept — existing components reference these) */
   --vt-c-white: #ffffff;
   --vt-c-white-soft: #f8f8f8;
   --vt-c-white-mute: #f2f2f2;
@@ -10,17 +12,26 @@
   --vt-c-indigo: #2c3e50;
 
   /* CleanSpaces palette */
-  --green-dark: #12332d;       /* headers, navbar, dark cards */
-  --green-deeper: #0b2a25;     /* text on green buttons, dark inputs */
-  --green: #7cb342;            /* primary accent, buttons, links */
+  --green-dark: #12332d;
+  --green-deeper: #0b2a25;
+  --green: #7cb342;
   --green-hover: #8bc34a;
-  --green-tint: #edf5e3;       /* light green highlight backgrounds */
-  --bg: #f4f6f5;               /* page background */
+  --green-deep: #689f38;
+  --green-tint: #edf5e3;
+  --bg: #f4f6f5;
   --card: #ffffff;
   --text: #2e3d39;
-  --text-muted: #6a7a76;       /* muted text on light backgrounds */
-  --text-muted-dark: #a0b0ac;  /* muted text on dark green */
+  --text-muted: #6a7a76;
+  --text-muted-dark: #a0b0ac;
   --border: #e0e5e2;
+
+  --font-display: 'Sora', sans-serif;
+  --font-body: 'Inter', sans-serif;
+
+  --shadow-sm: 0 1px 2px rgba(18, 51, 45, 0.05);
+  --shadow-md: 0 8px 24px rgba(18, 51, 45, 0.08);
+  --shadow-lg: 0 16px 40px rgba(18, 51, 45, 0.14);
+  --shadow-green: 0 4px 14px rgba(124, 179, 66, 0.35);
 
   --color-background: var(--bg);
   --color-text: var(--text);
@@ -34,45 +45,75 @@ body {
   margin: 0;
   min-height: 100vh;
   background: var(--bg);
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(124, 179, 66, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 85% 100%, rgba(18, 51, 45, 0.06) 0%, transparent 45%);
+  background-attachment: fixed;
   color: var(--text);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.6;
-  transition: color 0.5s, background-color 0.5s;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-img { max-width: 100%; }
-
-button,
-input,
-select {
-  font: inherit;
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--green-dark);
 }
 
-/* ============ Shared building blocks (scoped styles can override) ============ */
-.section-heading { text-align: center; margin-bottom: 2rem; }
-.section-heading h2 { margin: 0 0 .4rem; font-size: 2rem; color: var(--green-dark); }
+img { max-width: 100%; }
+
+button, input, select, textarea { font: inherit; }
+
+::selection { background: rgba(124, 179, 66, 0.35); }
+
+:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+/* ============ Shared building blocks ============ */
+.section-heading { text-align: center; margin-bottom: 2.5rem; }
+.section-heading h2 { margin: 0 0 .4rem; font-size: 2.1rem; font-weight: 800; }
 .section-heading p { margin: 0; color: var(--text-muted); }
 
 .card {
   background: var(--card);
-  border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, .05);
+  border-radius: 16px;
+  border: 1px solid rgba(18, 51, 45, 0.06);
   padding: 1.75rem;
   margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm), var(--shadow-md);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-sm), var(--shadow-lg);
 }
 
 .btn-primary,
 .btn-secondary {
   display: inline-block;
-  padding: .85rem 1.6rem;
-  border-radius: 8px;
+  padding: .85rem 1.7rem;
+  border-radius: 10px;
   font-weight: 700;
+  font-family: var(--font-display);
+  font-size: .95rem;
   text-decoration: none;
+  transition: all 0.25s ease;
 }
-.btn-primary { color: var(--green-deeper); background: var(--green); }
-.btn-primary:hover { background: var(--green-hover); }
-.btn-secondary { color: var(--green-dark); background: transparent; border: 2px solid var(--green-dark); }
+.btn-primary {
+  color: var(--green-deeper);
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-deep) 100%);
+  box-shadow: var(--shadow-green);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(124, 179, 66, 0.5);
+}
+.btn-secondary {
+  color: var(--green-dark);
+  background: transparent;
+  border: 2px solid var(--green-dark);
+}
+.btn-secondary:hover { background: rgba(18, 51, 45, 0.05); }
