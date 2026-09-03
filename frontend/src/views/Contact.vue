@@ -49,20 +49,20 @@
 
               <div class="card-content">
                 <span>EMAIL US</span>
-                <h3>info@cleanspaces.co.za</h3>
+                <h3>cleanspaces.team@outlook.com</h3>
               </div>
 
               <div class="card-arrow"></div>
             </a>
 
-            <a href="tel:+27000000000" class="contact-card">
+            <a href="tel:021555 0147" class="contact-card">
               <div class="card-number"></div>
 
               <div class="card-icon">☎</div>
 
               <div class="card-content">
                 <span>CALL US</span>
-                <h3>+27</h3>
+                <h3>+21 555 0147</h3>
               </div>
 
               <div class="card-arrow"></div>
