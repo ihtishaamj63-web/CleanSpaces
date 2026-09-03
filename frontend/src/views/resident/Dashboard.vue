@@ -288,19 +288,21 @@ onUnmounted(stopAuto)
   min-height: 100vh;
   background: #0b2a25;
   color: #f4f6f5;
-  overflow-x: hidden;
 }
 
+/* FIXED glows: contribute zero height/width — kills the double scrollbar
+   and the white space at the edges. z-index -1 paints them behind content. */
 .glow {
-  position: absolute;
+  position: fixed;
   border-radius: 50%;
   filter: blur(90px);
   pointer-events: none;
+  z-index: -1;
 }
 .glow-a {
   width: 640px; height: 640px;
   top: -220px; right: -140px;
-  background: rgba(124, 179, 66, 0.16);
+  background: rgba(124, 179, 66, 0.10);
 }
 .glow-b {
   width: 520px; height: 520px;
@@ -328,10 +330,12 @@ onUnmounted(stopAuto)
   font-weight: 800;
   letter-spacing: -0.035em;
   line-height: 1.04;
+  color: #ffffff;
+  text-shadow: 0 2px 30px rgba(11, 42, 37, 0.8);
 }
 .hero-sub {
   margin: 1rem 0 0;
-  color: #a0b0ac;
+  color: #c3d0cb;
   font-size: 1.08rem;
 }
 
@@ -354,9 +358,9 @@ onUnmounted(stopAuto)
   text-transform: uppercase; letter-spacing: .16em;
   color: #9ccc65;
 }
-.sub { color: #a0b0ac; margin: .4rem 0 0; font-size: .95rem; }
+.sub { color: #c3d0cb; margin: .4rem 0 0; font-size: .95rem; }
 .big-sub {
-  color: #f4f6f5; font-size: 1.35rem; font-weight: 700;
+  color: #ffffff; font-size: 1.35rem; font-weight: 700;
   margin: 0; font-family: 'Sora', sans-serif;
 }
 .text-btn { background: none; border: 0; color: #9ccc65; font: inherit; font-weight: 600; cursor: pointer; }
@@ -372,13 +376,14 @@ onUnmounted(stopAuto)
   font-weight: 800;
   line-height: 0.95;
   letter-spacing: -0.045em;
-  background: linear-gradient(180deg, #f4f6f5 30%, #a0b0ac 100%);
+  background: linear-gradient(180deg, #ffffff 55%, #c3d0cb 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  filter: drop-shadow(0 2px 20px rgba(11, 42, 37, 0.6));
 }
 .stat-context { display: grid; gap: .15rem; }
-.stat-strong { font-weight: 700; font-size: 1.18rem; font-family: 'Sora', sans-serif; }
+.stat-strong { font-weight: 700; font-size: 1.18rem; font-family: 'Sora', sans-serif; color: #ffffff; }
 
 .bar {
   height: 8px;
@@ -424,7 +429,7 @@ onUnmounted(stopAuto)
 
 .impact-line {
   margin: 0;
-  color: #a0b0ac;
+  color: #c3d0cb;
   font-size: .88rem;
 }
 .impact-line strong { color: #9ccc65; font-weight: 700; }
@@ -459,7 +464,7 @@ onUnmounted(stopAuto)
   padding: .5rem 1.25rem;
   border-radius: 999px;
   background: transparent;
-  color: #a0b0ac;
+  color: #c3d0cb;
   border: 1px solid #2a4a43;
   font-family: 'Sora', sans-serif;
   font-size: .82rem; font-weight: 600;
@@ -580,7 +585,7 @@ onUnmounted(stopAuto)
 }
 .ref:hover { color: #9ccc65; }
 .ledger-meta {
-  color: #a0b0ac;
+  color: #c3d0cb;
   font-size: 0.9rem;
 }
 .ledger-status {

@@ -238,7 +238,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   color: #a0b0ac;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding: 2.5rem 1rem 3rem;
-  margin-top: 4rem;
+  margin-top: 0;    /* was 4rem — this was creating the white band */
 }
 .footer-inner {
   max-width: 1160px;
