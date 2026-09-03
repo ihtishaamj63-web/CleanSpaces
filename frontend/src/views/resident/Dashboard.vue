@@ -31,10 +31,31 @@
       </div>
 
       <template v-else>
+        <!-- THIS MONTH AT A GLANCE -->
+        <div class="glance">
+          <div class="glance-item">
+            <span class="glance-num">{{ cleanups.length }}</span>
+            <span class="glance-label">cleanups done</span>
+          </div>
+          <div class="glance-item">
+            <span class="glance-num">{{ payingHouseholds }}</span>
+            <span class="glance-label">households paying</span>
+          </div>
+          <div class="glance-item">
+            <span class="glance-num">{{ nextCleanup }}</span>
+            <span class="glance-label">next cleanup</span>
+          </div>
+          <div class="glance-item">
+            <span class="glance-num">R{{ totalPaid }}</span>
+            <span class="glance-label">you've contributed</span>
+          </div>
+        </div>
+
         <!-- ACTIVATION -->
         <section class="block">
+          <h2 class="block-title">Zone Activation</h2>
           <div class="stat-line">
-            <span class="mega">{{ data.zone.paid }}</span>
+            <span class="mega">{{ displayPaid }}</span>
             <div class="stat-context">
               <span class="stat-strong">of {{ data.zone.threshold }} households paid</span>
               <span class="sub">{{ remaining }} to go until activation</span>
@@ -69,8 +90,6 @@
           </p>
         </section>
 
-        <hr class="rule" />
-
         <!-- CLEANUPS -->
         <section class="block">
           <h2 class="block-title">Cleanups</h2>
@@ -88,21 +107,25 @@
               </button>
             </div>
 
+            <!-- AFTER = base layer. BEFORE on top, clipped left of the divider.
+                 Sweep left = clean reveal. -->
             <div
               class="compare"
+              :class="{ idle: !dragging }"
               @pointerdown="dragging = true"
               @pointermove="onDrag"
               @pointerup="dragging = false"
               @pointerleave="dragging = false"
+              @pointercancel="dragging = false"
               @touchmove.prevent="onDrag"
             >
-              <img class="img-before" :src="current.before_url" alt="Before cleanup" draggable="false" />
+              <img class="img-after" :src="current.after_url" alt="After cleanup" draggable="false" />
               <img
-                class="img-after"
-                :src="current.after_url"
-                alt="After cleanup"
+                class="img-before"
+                :src="current.before_url"
+                alt="Before cleanup"
                 draggable="false"
-                :style="{ clipPath: 'inset(0 0 0 ' + pos + '%)' }"
+                :style="{ clipPath: 'inset(0 ' + (100 - pos) + '% 0 0)' }"
               />
               <div class="handle" :style="{ left: pos + '%' }">
                 <div class="knob">⇄</div>
@@ -118,13 +141,11 @@
           <p v-else class="sub">No cleanups recorded yet — your zone's first one is coming.</p>
         </section>
 
-        <hr class="rule" />
-
         <!-- PAYMENTS -->
         <section class="block">
           <h2 class="block-title">Payments</h2>
           <template v-if="payments.length">
-            <div v-for="p in payments" :key="p.id" class="ledger-row">
+            <div v-for="(p, i) in payments" :key="p.id" class="ledger-row" :style="{ animationDelay: (0.5 + i * 0.1) + 's' }">
               <router-link :to="'/payment/success/' + p.id" class="ref">
                 #CS-{{ String(p.id).padStart(5, '0') }}
               </router-link>
@@ -154,10 +175,13 @@ const cleanups = ref([])
 const progressDisplay = ref(0)
 
 const currentCleanup = ref(0)
-const pos = ref(50)
+const pos = ref(92)          // start on the dirty hold
 const dragging = ref(false)
+const displayPaid = ref(0)   // live counter for the mega number
+
 let autoTimer = null
-let cycleStart = 0
+let countTimer = null
+let parallaxOn = null
 
 const current = computed(() => cleanups.value[currentCleanup.value] || {})
 
@@ -174,6 +198,15 @@ const totalPaid = computed(() =>
     .toFixed(0)
 )
 
+const payingHouseholds = computed(() => data.value.zone?.paid ?? 0)
+
+const nextCleanup = computed(() => {
+  if (!cleanups.value.length) return '—'
+  const last = new Date(cleanups.value[0].date_cleaned)
+  last.setDate(last.getDate() + 7)
+  return last.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
+})
+
 const progressPct = computed(() => {
   const z = data.value.zone
   if (!z || !z.threshold) return 0
@@ -187,64 +220,69 @@ const remaining = computed(() => {
 
 function selectCleanup(i) {
   currentCleanup.value = i
-  pos.value = 50
-  cycleStart = Date.now() - ((pos.value - 8) / 84) * 8000
+  pos.value = 92
 }
 
-function onDrag(e) {
-  const rect = e.currentTarget.getBoundingClientRect()
-  const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left
-  pos.value = Math.min(97, Math.max(3, (x / rect.width) * 100))
-}
-
-/* Auto-sweep: 8s cycle, eases to the extremes and HOLDS there 2s each way,
-   giving viewers time to read both photos before reversing. */
-const HOLD = 2000
-const SWEEP = 3000
+/* ============ ONE AUTHORITY SWEEP — no cycle math to fight ============ */
+let target = 8
+const HOLD_MS = 2000
+const SWEEP_MS = 3000
+let holdUntil = 0
+let lastTick = 0
 
 function startAuto() {
   stopAuto()
-  cycleStart = Date.now()
+  target = 8
+  holdUntil = Date.now() + HOLD_MS
+  lastTick = Date.now()
   autoTimer = setInterval(() => {
-    if (dragging.value) {
-      cycleStart = Date.now() - posToTime(pos.value)
-      return
+    const now = Date.now()
+    const dt = now - lastTick
+    lastTick = now
+
+    if (dragging.value) return      // frozen during manual control
+    if (now < holdUntil) return     // holding at an extreme
+
+    const step = (dt / SWEEP_MS) * 84
+    let next = pos.value + (target > pos.value ? step : -step)
+    if (Math.abs(next - target) < 1) {
+      next = target
+      target = (target === 8) ? 92 : 8
+      holdUntil = now + HOLD_MS
     }
-    const t = (Date.now() - cycleStart) % ((SWEEP + HOLD) * 2)
-    pos.value = timeToPos(t)
+    pos.value = next
   }, 40)
-}
-
-function posToTime(p) {
-  // inverse of timeToPos — approximate for smooth resume
-  const phase = ((p - 8) / 84)
-  return phase * (SWEEP + HOLD)
-}
-
-function timeToPos(t) {
-  const cycle = (SWEEP + HOLD) * 2
-  let u = t / cycle
-  // first half: 8 -> 92 (sweep, hold at 92); second half: 92 -> 8 (sweep, hold at 8)
-  if (u < 0.5) {
-    const v = u * 2 // 0..1
-    if (v < SWEEP / (SWEEP + HOLD)) {
-      const w = v * (SWEEP + HOLD) / SWEEP // 0..1 over sweep
-      return 8 + (0.5 - 0.5 * Math.cos(w * Math.PI)) * 84
-    }
-    return 92
-  } else {
-    const v = (u - 0.5) * 2
-    if (v < SWEEP / (SWEEP + HOLD)) {
-      const w = v * (SWEEP + HOLD) / SWEEP
-      return 92 - (0.5 - 0.5 * Math.cos(w * Math.PI)) * 84
-    }
-    return 8
-  }
 }
 
 function stopAuto() {
   if (autoTimer) clearInterval(autoTimer)
   autoTimer = null
+}
+
+function onDrag(e) {
+  if (!dragging.value) return
+  const rect = e.currentTarget.getBoundingClientRect()
+  const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left
+  pos.value = Math.min(97, Math.max(3, (x / rect.width) * 100))
+}
+
+/* ============ LIVE COUNTER — the mega number ticks up ============ */
+function animateCount(targetVal, display, duration = 1200) {
+  const start = performance.now()
+  function tick(now) {
+    const progress = Math.min((now - start) / duration, 1)
+    const eased = 1 - Math.pow(1 - progress, 3)
+    display.value = Math.round(targetVal * eased)
+    if (progress < 1) countTimer = requestAnimationFrame(tick)
+  }
+  countTimer = requestAnimationFrame(tick)
+}
+
+/* ============ HERO PARALLAX ============ */
+function onScroll() {
+  const y = window.scrollY
+  const h1 = document.querySelector('.dash .hero h1')
+  if (h1) h1.style.transform = `translateY(${Math.min(y * 0.08, 40)}px)`
 }
 
 function formatDate(d) {
@@ -269,7 +307,13 @@ async function load() {
     }
 
     await nextTick()
+
+    // Animate: the bar fills, the mega number counts up
     setTimeout(() => { progressDisplay.value = progressPct.value }, 300)
+    if (data.value.hasZone) {
+      animateCount(data.value.zone.paid, displayPaid)
+    }
+
     startAuto()
   } catch {
     loadError.value = true
@@ -278,8 +322,17 @@ async function load() {
   }
 }
 
-onMounted(load)
-onUnmounted(stopAuto)
+onMounted(() => {
+  load()
+  parallaxOn = () => onScroll()
+  window.addEventListener('scroll', parallaxOn, { passive: true })
+})
+
+onUnmounted(() => {
+  stopAuto()
+  if (countTimer) cancelAnimationFrame(countTimer)
+  if (parallaxOn) window.removeEventListener('scroll', parallaxOn)
+})
 </script>
 
 <style scoped>
@@ -288,26 +341,37 @@ onUnmounted(stopAuto)
   min-height: 100vh;
   background: #0b2a25;
   color: #f4f6f5;
+  overflow-x: clip;
 }
 
-/* FIXED glows: contribute zero height/width — kills the double scrollbar
-   and the white space at the edges. z-index -1 paints them behind content. */
+/* ============ DRIFTING AMBIENT GLOWS ============ */
 .glow {
   position: fixed;
   border-radius: 50%;
   filter: blur(90px);
   pointer-events: none;
   z-index: -1;
+  will-change: transform;
 }
 .glow-a {
   width: 640px; height: 640px;
   top: -220px; right: -140px;
   background: rgba(124, 179, 66, 0.10);
+  animation: driftA 14s ease-in-out infinite alternate;
 }
 .glow-b {
   width: 520px; height: 520px;
   bottom: -160px; left: -180px;
   background: rgba(42, 74, 67, 0.55);
+  animation: driftB 18s ease-in-out infinite alternate;
+}
+@keyframes driftA {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(-60px, 50px) scale(1.15); }
+}
+@keyframes driftB {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(70px, -40px) scale(0.92); }
 }
 
 .hero {
@@ -332,6 +396,7 @@ onUnmounted(stopAuto)
   line-height: 1.04;
   color: #ffffff;
   text-shadow: 0 2px 30px rgba(11, 42, 37, 0.8);
+  will-change: transform;
 }
 .hero-sub {
   margin: 1rem 0 0;
@@ -343,21 +408,74 @@ onUnmounted(stopAuto)
   position: relative;
   max-width: 960px;
   margin: 0 auto;
-  padding: 0 1.5rem 6rem;
+  padding: 0 1.5rem 5rem;
   display: grid;
-  gap: 3.25rem;
+  gap: 2.25rem;
 }
-.block { animation: rise .65s cubic-bezier(.22, 1, .36, 1) both; }
-.block:nth-child(2) { animation-delay: .08s; }
-.block:nth-child(3) { animation-delay: .16s; }
+
+/* ============ SECTION PANELS — real separation ============ */
+.block {
+  background: #0e2420;
+  border: 1px solid #1d3b35;
+  border-radius: 20px;
+  padding: 2rem 1.75rem;
+  animation: rise .65s cubic-bezier(.22, 1, .36, 1) both;
+}
+.block:nth-of-type(2) { animation-delay: .05s; }
+.block:nth-of-type(3) { animation-delay: .1s; }
+.block:nth-of-type(4) { animation-delay: .15s; }
 
 .block-title {
   margin: 0 0 1.5rem;
   font-family: 'Sora', sans-serif;
-  font-size: .92rem; font-weight: 700;
+  font-size: 1rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: .16em;
   color: #9ccc65;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
 }
+.block-title::before {
+  content: '';
+  width: 22px; height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #7cb342, transparent);
+  flex-shrink: 0;
+}
+
+/* ============ THIS MONTH AT A GLANCE ============ */
+.glance {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: #1d3b35;
+  border: 1px solid #1d3b35;
+  border-radius: 20px;
+  overflow: hidden;
+  animation: rise .65s cubic-bezier(.22, 1, .36, 1) both;
+}
+.glance-item {
+  background: #0e2420;
+  padding: 1.5rem 1.25rem;
+  display: grid;
+  gap: .3rem;
+  transition: background 0.25s ease;
+}
+.glance-item:hover { background: #12332d; }
+.glance-num {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+.glance-label {
+  color: #6a7a76;
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
 .sub { color: #c3d0cb; margin: .4rem 0 0; font-size: .95rem; }
 .big-sub {
   color: #ffffff; font-size: 1.35rem; font-weight: 700;
@@ -366,10 +484,11 @@ onUnmounted(stopAuto)
 .text-btn { background: none; border: 0; color: #9ccc65; font: inherit; font-weight: 600; cursor: pointer; }
 .text-link { color: #9ccc65; font-weight: 600; text-decoration: none; }
 
-.rule { border: 0; border-top: 1px solid #1d3b35; margin: 0; }
-
-/* ACTIVATION */
-.stat-line { display: flex; align-items: baseline; gap: 1.4rem; flex-wrap: wrap; }
+/* ============ ACTIVATION ============ */
+.stat-line {
+  display: flex; align-items: baseline; gap: 1.4rem; flex-wrap: wrap;
+  margin-top: -0.5rem;
+}
 .mega {
   font-family: 'Sora', sans-serif;
   font-size: clamp(3.6rem, 11vw, 7rem);
@@ -381,6 +500,7 @@ onUnmounted(stopAuto)
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 2px 20px rgba(11, 42, 37, 0.6));
+  font-variant-numeric: tabular-nums;
 }
 .stat-context { display: grid; gap: .15rem; }
 .stat-strong { font-weight: 700; font-size: 1.18rem; font-family: 'Sora', sans-serif; color: #ffffff; }
@@ -389,7 +509,7 @@ onUnmounted(stopAuto)
   height: 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.07);
-  margin: 2rem 0 1.25rem;
+  margin: 1.75rem 0 1.25rem;
   overflow: hidden;
 }
 .bar-fill {
@@ -398,9 +518,21 @@ onUnmounted(stopAuto)
   background: linear-gradient(90deg, #7cb342, #9ccc65);
   box-shadow: 0 0 20px rgba(124, 179, 66, 0.55);
   transition: width 1.3s cubic-bezier(.22, 1, .36, 1);
+  position: relative;
+}
+.bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: shimmer 2.2s ease-in-out infinite;
+}
+@keyframes shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
 }
 
-/* SMART STATUS BANNER */
+/* ============ SMART STATUS BANNER ============ */
 .status-banner {
   display: flex;
   align-items: center;
@@ -418,23 +550,21 @@ onUnmounted(stopAuto)
 .status-banner.pending {
   background: rgba(255, 202, 122, 0.08);
   border: 1px solid rgba(255, 202, 122, 0.3);
+  animation: rise .6s cubic-bezier(.22, 1, .36, 1) .3s both,
+             urgentPulse 2.8s ease-in-out 1.5s infinite;
 }
-.status-msg {
-  margin: 0;
-  font-size: .93rem;
-  line-height: 1.5;
+@keyframes urgentPulse {
+  0%, 100% { border-color: rgba(255, 202, 122, 0.3); box-shadow: none; }
+  50% { border-color: rgba(255, 202, 122, 0.65); box-shadow: 0 0 18px rgba(255, 202, 122, 0.12); }
 }
+.status-msg { margin: 0; font-size: .93rem; line-height: 1.5; }
 .status-banner.paid .status-msg { color: #d7e4de; }
 .status-banner.pending .status-msg { color: #ffe3c2; }
 
-.impact-line {
-  margin: 0;
-  color: #c3d0cb;
-  font-size: .88rem;
-}
+.impact-line { margin: 0; color: #c3d0cb; font-size: .88rem; }
 .impact-line strong { color: #9ccc65; font-weight: 700; }
 
-/* CTA */
+/* ============ CTA ============ */
 .cta {
   display: inline-block;
   padding: .95rem 2.3rem;
@@ -452,13 +582,9 @@ onUnmounted(stopAuto)
   transform: translateY(-2px);
   box-shadow: 0 12px 36px rgba(124, 179, 66, 0.55);
 }
-.cta.compact {
-  padding: .6rem 1.4rem;
-  font-size: .88rem;
-  margin-left: auto;
-}
+.cta.compact { padding: .6rem 1.4rem; font-size: .88rem; margin-left: auto; }
 
-/* CLEANUPS */
+/* ============ CLEANUPS ============ */
 .chips { display: flex; gap: .55rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
 .chip {
   padding: .5rem 1.25rem;
@@ -479,7 +605,7 @@ onUnmounted(stopAuto)
   box-shadow: 0 4px 14px rgba(124, 179, 66, 0.35);
 }
 
-/* DRAG-TO-COMPARE */
+/* ============ DRAG-TO-COMPARE ============ */
 .compare {
   position: relative;
   aspect-ratio: 16 / 10;
@@ -498,8 +624,8 @@ onUnmounted(stopAuto)
   display: block;
   pointer-events: none;
 }
-.img-before { z-index: 1; }
-.img-after { z-index: 2; }
+.img-after { z-index: 1; }
+.img-before { z-index: 2; }
 
 .handle {
   position: absolute; top: 0; bottom: 0;
@@ -527,6 +653,20 @@ onUnmounted(stopAuto)
   box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5), 0 0 0 5px rgba(255, 255, 255, 0.12);
   transition: transform 0.2s ease;
 }
+/* Breathing ring while idle — stops the moment you press */
+.compare.idle .knob::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(124, 179, 66, 0.6);
+  animation: breathe 2.4s ease-out infinite;
+}
+@keyframes breathe {
+  0% { transform: scale(0.85); opacity: 0.9; }
+  70% { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
 .compare:active .knob {
   transform: translate(-50%, -50%) scale(1.14);
 }
@@ -540,16 +680,8 @@ onUnmounted(stopAuto)
   letter-spacing: .09em; text-transform: uppercase;
   backdrop-filter: blur(8px);
 }
-.tag.before {
-  left: 1.1rem;
-  background: rgba(15, 15, 15, 0.6);
-  color: #fff;
-}
-.tag.after {
-  right: 1.1rem;
-  background: rgba(104, 159, 56, 0.85);
-  color: #fff;
-}
+.tag.before { left: 1.1rem; background: rgba(15, 15, 15, 0.6); color: #fff; }
+.tag.after { right: 1.1rem; background: rgba(104, 159, 56, 0.85); color: #fff; }
 
 .compare-hint {
   margin: .8rem 0 0;
@@ -559,14 +691,9 @@ onUnmounted(stopAuto)
   letter-spacing: .12em;
   text-transform: uppercase;
 }
-.notes {
-  margin: 1.1rem 0 0;
-  font-size: 1.05rem;
-  color: #d7e4de;
-  max-width: 60ch;
-}
+.notes { margin: 1.1rem 0 0; font-size: 1.05rem; color: #d7e4de; max-width: 60ch; }
 
-/* PAYMENTS LEDGER */
+/* ============ PAYMENTS LEDGER — rows cascade in ============ */
 .ledger-row {
   display: flex;
   align-items: center;
@@ -574,7 +701,9 @@ onUnmounted(stopAuto)
   padding: 1.25rem 0;
   border-bottom: 1px solid #1d3b35;
   flex-wrap: wrap;
+  animation: rise .5s cubic-bezier(.22, 1, .36, 1) both;
 }
+.ledger-row:last-child { border-bottom: none; }
 .ref {
   color: #f4f6f5;
   font-weight: 700;
@@ -584,10 +713,7 @@ onUnmounted(stopAuto)
   transition: color 0.2s;
 }
 .ref:hover { color: #9ccc65; }
-.ledger-meta {
-  color: #c3d0cb;
-  font-size: 0.9rem;
-}
+.ledger-meta { color: #c3d0cb; font-size: 0.9rem; }
 .ledger-status {
   margin-left: auto;
   padding: 0.28rem 0.85rem;
@@ -622,10 +748,19 @@ onUnmounted(stopAuto)
 
 @media (max-width: 640px) {
   .hero { padding-top: 3.5rem; }
-  .rail { gap: 2.5rem; }
+  .rail { gap: 1.75rem; }
+  .block { padding: 1.5rem 1.25rem; }
+  .glance { grid-template-columns: repeat(2, 1fr); }
   .compare { aspect-ratio: 4 / 5; }
   .knob { width: 42px; height: 42px; }
   .status-banner { flex-direction: column; align-items: flex-start; }
   .cta.compact { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-a, .glow-b, .bar-fill::after, .compare.idle .knob::after,
+  .status-banner.pending, .block, .ledger-row, .glance {
+    animation: none !important;
+  }
 }
 </style>
