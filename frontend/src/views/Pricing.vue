@@ -158,7 +158,7 @@ const faqs = [
 ]
 </script>
 
-<style>
+<style scoped>
 .pricing-page {
   position: relative;
   min-height: 100vh;
