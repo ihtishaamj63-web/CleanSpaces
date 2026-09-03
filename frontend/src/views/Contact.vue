@@ -303,18 +303,38 @@ const toggleFaq = (index) => {
   activeFaq.value = activeFaq.value === index ? null : index;
 };
 
-const submitForm = () => {
-  showSuccess.value = true;
+const submitForm = async () => {
+  try {
+    const response = await fetch("http://localhost:3000/api/contact", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(form),
+    });
 
-  setTimeout(() => {
-    showSuccess.value = false;
-  }, 5000);
+    const data = await response.json();
 
-  form.name = "";
-  form.email = "";
-  form.phone = "";
-  form.subject = "";
-  form.message = "";
+    if (!response.ok) {
+      alert(data.message || "Something went wrong.");
+      return;
+    }
+
+    showSuccess.value = true;
+
+    setTimeout(() => {
+      showSuccess.value = false;
+    }, 5000);
+
+    form.name = "";
+    form.email = "";
+    form.phone = "";
+    form.subject = "";
+    form.message = "";
+  } catch (error) {
+    console.error("Contact form error:", error);
+    alert("Unable to send your message. Please try again.");
+  }
 };
 
 const reportIssue = () => {
