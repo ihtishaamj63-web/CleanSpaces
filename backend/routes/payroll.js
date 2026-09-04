@@ -1,7 +1,11 @@
 import { Router } from 'express'
+import auth, { requireAdmin } from '../middleware/auth.js'
+import { createPayroll, listPayroll } from '../controllers/payrollController.js'
 
 const router = Router()
 
-// Replace this stub with your real endpoints (see the dev plan for your list).
+router.use(auth, requireAdmin)
+router.get('/', listPayroll)
+router.post('/', createPayroll)
 
 export default router

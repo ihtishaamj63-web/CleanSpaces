@@ -20,6 +20,7 @@ const router = createRouter({
     { path: '/admin/employees', name: 'adminEmployees', component: () => import('../views/admin/Employees.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
     { path: '/admin/payroll', name: 'adminPayroll', component: () => import('../views/admin/Payroll.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
     { path: '/admin/cleanup-reports', name: 'adminCleanupReports', component: () => import('../views/admin/CleanupReports.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
+    { path: '/admin/cleanup-requests', name: 'adminCleanupRequests', component: () => import('../views/admin/CleanupRequests.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ]
 })

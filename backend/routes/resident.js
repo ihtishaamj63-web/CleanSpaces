@@ -1,4 +1,9 @@
 import { Router } from 'express'
+import auth from '../middleware/auth.js'
+import {
+  createCleanupRequest,
+  listMyCleanupRequests
+} from '../controllers/residentController.js'
 import db from '../db.js'
 
 const router = Router()
@@ -60,5 +65,8 @@ router.get('/cleanups', async (req, res) => {
     res.status(500).json({ error: 'Server error' })
   }
 })
+
+router.post('/cleanup-requests', auth, createCleanupRequest)
+router.get('/cleanup-requests', auth, listMyCleanupRequests)
 
 export default router

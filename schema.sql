@@ -121,3 +121,27 @@ VALUES ('Admin', 'admin@cleanspaces.co.za', '0210000000', 'Admin@2026', 'admin')
 
 INSERT INTO users (name, email, phone, password_hash, role)
 VALUES ('Thandiwe Mbeki', 'thandiwe@gmail.com', '0821234567', 'Resident@2026', 'resident');
+-- Cleanup requests (resident-submitted locations for crew review)
+CREATE TABLE cleanup_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  location_name VARCHAR(255) NOT NULL,
+  address VARCHAR(255) NOT NULL,
+  suburb VARCHAR(255) NOT NULL,
+  description VARCHAR(1000) NOT NULL,
+  preferred_date DATE NULL,
+  status ENUM('new','reviewing','scheduled','completed') DEFAULT 'new',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- v1.1: wage derived from role
+ALTER TABLE employees DROP COLUMN daily_wage;
+ALTER TABLE employees ADD COLUMN daily_wage DECIMAL(10,2) GENERATED ALWAYS AS (
+  CASE role
+    WHEN 'Crew Member' THEN 300.00
+    WHEN 'Crew Lead' THEN 350.00
+    WHEN 'Operations Manager' THEN 450.00
+    ELSE 0.00
+  END
+) STORED;

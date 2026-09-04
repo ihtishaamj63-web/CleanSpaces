@@ -1,7 +1,8 @@
 import { Router } from 'express'
+import { login } from '../controllers/authController.js'
 
 const router = Router()
 
-// Replace this stub with your real endpoints (see the dev plan for your list).
+router.post('/login', login)
 
 export default router
