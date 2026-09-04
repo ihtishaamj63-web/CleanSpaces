@@ -1,11 +1,5 @@
 <template>
   <div class="payment-page" ref="payEl">
-    <div class="sweep-mark" aria-hidden="true">
-      <span class="sweep-line"></span>
-      <span class="sweep-node"></span>
-      <span class="sweep-line short"></span>
-    </div>
-
     <section v-if="checking" class="wrap">
       <div class="panel state-panel">
         <div class="spinner"></div>
@@ -411,33 +405,6 @@ function submitToPayfast(url, params) {
   background: #0b2a25;
   color: #f4f6f5;
   overflow-x: clip;
-}
-
-/* SWEEP MOTIF mark */
-.sweep-mark {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  max-width: 1000px;
-  margin: 0 auto 0.5rem;
-}
-.sweep-line {
-  display: block;
-  height: 2px;
-  flex: 1;
-  background: linear-gradient(90deg, transparent, #2a4a43);
-}
-.sweep-line.short { max-width: 120px; }
-.sweep-node {
-  display: block;
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: #0b2a25;
-  border: 3px solid #7cb342;
-  flex-shrink: 0;
-  box-shadow: 0 0 12px rgba(124, 179, 66, 0.5);
 }
 
 .wrap { max-width: 1000px; margin: 0 auto; }

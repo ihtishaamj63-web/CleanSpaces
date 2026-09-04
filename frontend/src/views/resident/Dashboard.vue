@@ -544,8 +544,8 @@ onUnmounted(() => {
   height: 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.07);
-  margin: 2.5rem 0 1.25rem;
-  overflow: visible;   /* so the broom can ride above the bar */
+  margin: 2rem 0 1.25rem;
+  overflow: hidden; 
 }
 .bar-fill {
   height: 100%;
@@ -566,15 +566,6 @@ onUnmounted(() => {
   box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
   border-radius: 2px;
 }
-/* the broom riding the edge */
-.bar-fill::before {
-  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 36 36'%3E%3Cg transform='rotate(45 18 18)'%3E%3Crect x='16.5' y='2' width='3' height='14' rx='1.5' fill='%23d7a06a'/%3E%3Cpath d='M8 16 L28 16 L26 30 Q18 34 10 30 Z' fill='%23e8c48a' stroke='%23a8742e' stroke-width='1.5'/%3E%3C/g%3E%3C/svg%3E");
-  position: absolute;
-  right: -8px;
-  top: -15px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
-}
-
 /* SMART STATUS BANNER */
 .status-banner {
   display: flex;
@@ -658,11 +649,8 @@ onUnmounted(() => {
   user-select: none;
   -webkit-user-select: none;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'%3E%3Cg transform='rotate(45 18 18)'%3E%3Crect x='16.5' y='2' width='3' height='14' rx='1.5' fill='%23d7a06a'/%3E%3Cpath d='M8 16 L28 16 L26 30 Q18 34 10 30 Z' fill='%23e8c48a' stroke='%23a8742e' stroke-width='1.5'/%3E%3Cpath d='M10 16 L10 30 M18 16 L18 33 M26 16 L26 30' stroke='%23a8742e' stroke-width='1.2'/%3E%3C/g%3E%3C/svg%3E") 6 4, ew-resize;
 }
-.compare:active {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'%3E%3Cg transform='rotate(60 18 18)'%3E%3Crect x='16.5' y='2' width='3' height='14' rx='1.5' fill='%23d7a06a'/%3E%3Cpath d='M8 16 L28 16 L26 30 Q18 34 10 30 Z' fill='%23e8c48a' stroke='%23a8742e' stroke-width='1.5'/%3E%3Cpath d='M10 16 L10 30 M18 16 L18 33 M26 16 L26 30' stroke='%23a8742e' stroke-width='1.2'/%3E%3C/g%3E%3C/svg%3E") 6 4, ew-resize;
-}
+
 .compare img {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
