@@ -16,7 +16,7 @@
         <div class="details">
           <div class="row"><span>Reference</span><span>#CS-{{ String(payment.id).padStart(5, '0') }}</span></div>
           <div class="row"><span>Amount</span><span>R{{ payment.amount }}</span></div>
-          <div class="row"><span>Method</span><span>{{ payment.method }}</span></div>
+          <div class="row"><span>Method</span><span>{{ methodLabel }}</span></div>
         </div>
 
         <!-- What happens next -->
@@ -46,13 +46,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '../api.js'
 
 const route = useRoute()
 const payment = ref(null)
 const zoneProgress = ref(null)
+
+const METHOD_LABELS = { card: 'Card', eft: 'EFT' }
+const methodLabel = computed(() =>
+  METHOD_LABELS[payment.value?.method] || payment.value?.method || '—'
+)
 
 onMounted(async () => {
   try {
@@ -62,7 +67,6 @@ onMounted(async () => {
     payment.value = { id: route.params.id, amount: '—', method: '—' }
   }
 
-  // What happens next: fetch zone activation progress
   try {
     const dash = await api.get('/resident/dashboard')
     if (dash.data.hasZone) {
@@ -151,7 +155,6 @@ onMounted(async () => {
 .details .row span:first-child { color: #a0b0ac; }
 .details .row span:last-child { font-weight: 700; }
 
-/* What happens next */
 .next-steps {
   padding: 1.1rem 1.25rem;
   background: rgba(124, 179, 66, 0.08);

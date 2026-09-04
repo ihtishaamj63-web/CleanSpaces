@@ -1,5 +1,5 @@
 <template>
-  <div class="dash">
+  <div class="dash" ref="dashEl">
     <div class="glow glow-a"></div>
     <div class="glow glow-b"></div>
 
@@ -66,7 +66,6 @@
             <div class="bar-fill" :style="{ width: progressDisplay + '%' }"></div>
           </div>
 
-          <!-- SMART STATUS BANNER -->
           <div class="status-banner" :class="data.zone.myStatus">
             <p class="status-msg">
               <template v-if="data.zone.myStatus === 'paid'">
@@ -107,8 +106,6 @@
               </button>
             </div>
 
-            <!-- AFTER = base layer. BEFORE on top, clipped left of the divider.
-                 Sweep left = clean reveal. -->
             <div
               class="compare"
               :class="{ idle: !dragging }"
@@ -149,7 +146,7 @@
               <router-link :to="'/payment/success/' + p.id" class="ref">
                 #CS-{{ String(p.id).padStart(5, '0') }}
               </router-link>
-              <span class="ledger-meta">{{ formatDate(p.created_at) }} · {{ p.method }}</span>
+              <span class="ledger-meta">{{ formatDate(p.created_at) }} · {{ METHOD_LABELS[p.method] || p.method }}</span>
               <span class="ledger-status" :class="p.status">{{ p.status }}</span>
               <span class="amount">R{{ p.amount }}</span>
             </div>
@@ -167,6 +164,8 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import api from '../../api.js'
 
+const METHOD_LABELS = { card: 'Card', eft: 'EFT' }
+
 const loading = ref(true)
 const loadError = ref(false)
 const data = ref({ hasZone: false, zone: null })
@@ -175,13 +174,16 @@ const cleanups = ref([])
 const progressDisplay = ref(0)
 
 const currentCleanup = ref(0)
-const pos = ref(92)          // start on the dirty hold
+const pos = ref(92)
 const dragging = ref(false)
-const displayPaid = ref(0)   // live counter for the mega number
+const displayPaid = ref(0)
+
+const dashEl = ref(null)
 
 let autoTimer = null
 let countTimer = null
 let parallaxOn = null
+let pointerMove = null
 
 const current = computed(() => cleanups.value[currentCleanup.value] || {})
 
@@ -223,7 +225,7 @@ function selectCleanup(i) {
   pos.value = 92
 }
 
-/* ============ ONE AUTHORITY SWEEP — no cycle math to fight ============ */
+/* ONE AUTHORITY SWEEP */
 let target = 8
 const HOLD_MS = 2000
 const SWEEP_MS = 3000
@@ -240,8 +242,8 @@ function startAuto() {
     const dt = now - lastTick
     lastTick = now
 
-    if (dragging.value) return      // frozen during manual control
-    if (now < holdUntil) return     // holding at an extreme
+    if (dragging.value) return
+    if (now < holdUntil) return
 
     const step = (dt / SWEEP_MS) * 84
     let next = pos.value + (target > pos.value ? step : -step)
@@ -266,7 +268,7 @@ function onDrag(e) {
   pos.value = Math.min(97, Math.max(3, (x / rect.width) * 100))
 }
 
-/* ============ LIVE COUNTER — the mega number ticks up ============ */
+/* LIVE COUNTER */
 function animateCount(targetVal, display, duration = 1200) {
   const start = performance.now()
   function tick(now) {
@@ -278,11 +280,20 @@ function animateCount(targetVal, display, duration = 1200) {
   countTimer = requestAnimationFrame(tick)
 }
 
-/* ============ HERO PARALLAX ============ */
+/* HERO PARALLAX */
 function onScroll() {
   const y = window.scrollY
   const h1 = document.querySelector('.dash .hero h1')
   if (h1) h1.style.transform = `translateY(${Math.min(y * 0.08, 40)}px)`
+}
+
+/* CLEAN-REVEAL SPOTLIGHT — light follows the cursor across panels */
+function onPointerMove(e) {
+  const el = dashEl.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  el.style.setProperty('--mx', (e.clientX - rect.left) + 'px')
+  el.style.setProperty('--my', (e.clientY - rect.top) + 'px')
 }
 
 function formatDate(d) {
@@ -307,13 +318,10 @@ async function load() {
     }
 
     await nextTick()
-
-    // Animate: the bar fills, the mega number counts up
     setTimeout(() => { progressDisplay.value = progressPct.value }, 300)
     if (data.value.hasZone) {
       animateCount(data.value.zone.paid, displayPaid)
     }
-
     startAuto()
   } catch {
     loadError.value = true
@@ -326,12 +334,15 @@ onMounted(() => {
   load()
   parallaxOn = () => onScroll()
   window.addEventListener('scroll', parallaxOn, { passive: true })
+  pointerMove = (e) => onPointerMove(e)
+  window.addEventListener('pointermove', pointerMove, { passive: true })
 })
 
 onUnmounted(() => {
   stopAuto()
   if (countTimer) cancelAnimationFrame(countTimer)
   if (parallaxOn) window.removeEventListener('scroll', parallaxOn)
+  if (pointerMove) window.removeEventListener('pointermove', pointerMove)
 })
 </script>
 
@@ -344,7 +355,7 @@ onUnmounted(() => {
   overflow-x: clip;
 }
 
-/* ============ DRIFTING AMBIENT GLOWS ============ */
+/* DRIFTING AMBIENT GLOWS */
 .glow {
   position: fixed;
   border-radius: 50%;
@@ -413,17 +424,39 @@ onUnmounted(() => {
   gap: 2.25rem;
 }
 
-/* ============ SECTION PANELS — real separation ============ */
+/* SECTION PANELS + SPOTLIGHT */
 .block {
   background: #0e2420;
   border: 1px solid #1d3b35;
   border-radius: 20px;
   padding: 2rem 1.75rem;
-  animation: rise .65s cubic-bezier(.22, 1, .36, 1) both;
+  position: relative;
+  animation: sweepIn .65s cubic-bezier(.22, 1, .36, 1) both;
 }
 .block:nth-of-type(2) { animation-delay: .05s; }
 .block:nth-of-type(3) { animation-delay: .1s; }
 .block:nth-of-type(4) { animation-delay: .15s; }
+
+/* CLEAN-REVEAL SPOTLIGHT — the panel brightens where the cursor is */
+.block::before,
+.glance::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    280px circle at var(--mx, -500px) var(--my, -500px),
+    rgba(124, 179, 66, 0.07),
+    transparent 65%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.block:hover::before,
+.glance:hover::before {
+  opacity: 1;
+}
 
 .block-title {
   margin: 0 0 1.5rem;
@@ -443,7 +476,7 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-/* ============ THIS MONTH AT A GLANCE ============ */
+/* THIS MONTH AT A GLANCE */
 .glance {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -452,7 +485,8 @@ onUnmounted(() => {
   border: 1px solid #1d3b35;
   border-radius: 20px;
   overflow: hidden;
-  animation: rise .65s cubic-bezier(.22, 1, .36, 1) both;
+  position: relative;
+  animation: sweepIn .65s cubic-bezier(.22, 1, .36, 1) both;
 }
 .glance-item {
   background: #0e2420;
@@ -484,7 +518,7 @@ onUnmounted(() => {
 .text-btn { background: none; border: 0; color: #9ccc65; font: inherit; font-weight: 600; cursor: pointer; }
 .text-link { color: #9ccc65; font-weight: 600; text-decoration: none; }
 
-/* ============ ACTIVATION ============ */
+/* ACTIVATION */
 .stat-line {
   display: flex; align-items: baseline; gap: 1.4rem; flex-wrap: wrap;
   margin-top: -0.5rem;
@@ -505,12 +539,13 @@ onUnmounted(() => {
 .stat-context { display: grid; gap: .15rem; }
 .stat-strong { font-weight: 700; font-size: 1.18rem; font-family: 'Sora', sans-serif; color: #ffffff; }
 
+/* THE SWEEPING PROGRESS BAR — broom rides the leading edge */
 .bar {
   height: 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.07);
-  margin: 1.75rem 0 1.25rem;
-  overflow: hidden;
+  margin: 2.5rem 0 1.25rem;
+  overflow: visible;   /* so the broom can ride above the bar */
 }
 .bar-fill {
   height: 100%;
@@ -519,20 +554,28 @@ onUnmounted(() => {
   box-shadow: 0 0 20px rgba(124, 179, 66, 0.55);
   transition: width 1.3s cubic-bezier(.22, 1, .36, 1);
   position: relative;
+  min-width: 12px;
 }
+/* the glint edge — the sweep line */
 .bar-fill::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
-  animation: shimmer 2.2s ease-in-out infinite;
+  right: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: #ffffff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+  border-radius: 2px;
 }
-@keyframes shimmer {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(100%); }
+/* the broom riding the edge */
+.bar-fill::before {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 36 36'%3E%3Cg transform='rotate(45 18 18)'%3E%3Crect x='16.5' y='2' width='3' height='14' rx='1.5' fill='%23d7a06a'/%3E%3Cpath d='M8 16 L28 16 L26 30 Q18 34 10 30 Z' fill='%23e8c48a' stroke='%23a8742e' stroke-width='1.5'/%3E%3C/g%3E%3C/svg%3E");
+  position: absolute;
+  right: -8px;
+  top: -15px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
 }
 
-/* ============ SMART STATUS BANNER ============ */
+/* SMART STATUS BANNER */
 .status-banner {
   display: flex;
   align-items: center;
@@ -541,7 +584,7 @@ onUnmounted(() => {
   border-radius: 14px;
   flex-wrap: wrap;
   margin-bottom: .9rem;
-  animation: rise .6s cubic-bezier(.22, 1, .36, 1) .3s both;
+  animation: sweepIn .6s cubic-bezier(.22, 1, .36, 1) .3s both;
 }
 .status-banner.paid {
   background: rgba(124, 179, 66, 0.1);
@@ -550,7 +593,7 @@ onUnmounted(() => {
 .status-banner.pending {
   background: rgba(255, 202, 122, 0.08);
   border: 1px solid rgba(255, 202, 122, 0.3);
-  animation: rise .6s cubic-bezier(.22, 1, .36, 1) .3s both,
+  animation: sweepIn .6s cubic-bezier(.22, 1, .36, 1) .3s both,
              urgentPulse 2.8s ease-in-out 1.5s infinite;
 }
 @keyframes urgentPulse {
@@ -564,7 +607,7 @@ onUnmounted(() => {
 .impact-line { margin: 0; color: #c3d0cb; font-size: .88rem; }
 .impact-line strong { color: #9ccc65; font-weight: 700; }
 
-/* ============ CTA ============ */
+/* CTA */
 .cta {
   display: inline-block;
   padding: .95rem 2.3rem;
@@ -584,7 +627,7 @@ onUnmounted(() => {
 }
 .cta.compact { padding: .6rem 1.4rem; font-size: .88rem; margin-left: auto; }
 
-/* ============ CLEANUPS ============ */
+/* CLEANUPS */
 .chips { display: flex; gap: .55rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
 .chip {
   padding: .5rem 1.25rem;
@@ -605,17 +648,20 @@ onUnmounted(() => {
   box-shadow: 0 4px 14px rgba(124, 179, 66, 0.35);
 }
 
-/* ============ DRAG-TO-COMPARE ============ */
+/* DRAG-TO-COMPARE — with the BROOM CURSOR */
 .compare {
   position: relative;
   aspect-ratio: 16 / 10;
   border-radius: 18px;
   overflow: hidden;
-  cursor: ew-resize;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'%3E%3Cg transform='rotate(45 18 18)'%3E%3Crect x='16.5' y='2' width='3' height='14' rx='1.5' fill='%23d7a06a'/%3E%3Cpath d='M8 16 L28 16 L26 30 Q18 34 10 30 Z' fill='%23e8c48a' stroke='%23a8742e' stroke-width='1.5'/%3E%3Cpath d='M10 16 L10 30 M18 16 L18 33 M26 16 L26 30' stroke='%23a8742e' stroke-width='1.2'/%3E%3C/g%3E%3C/svg%3E") 6 4, ew-resize;
+}
+.compare:active {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'%3E%3Cg transform='rotate(60 18 18)'%3E%3Crect x='16.5' y='2' width='3' height='14' rx='1.5' fill='%23d7a06a'/%3E%3Cpath d='M8 16 L28 16 L26 30 Q18 34 10 30 Z' fill='%23e8c48a' stroke='%23a8742e' stroke-width='1.5'/%3E%3Cpath d='M10 16 L10 30 M18 16 L18 33 M26 16 L26 30' stroke='%23a8742e' stroke-width='1.2'/%3E%3C/g%3E%3C/svg%3E") 6 4, ew-resize;
 }
 .compare img {
   position: absolute; inset: 0;
@@ -653,7 +699,6 @@ onUnmounted(() => {
   box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5), 0 0 0 5px rgba(255, 255, 255, 0.12);
   transition: transform 0.2s ease;
 }
-/* Breathing ring while idle — stops the moment you press */
 .compare.idle .knob::after {
   content: '';
   position: absolute;
@@ -693,7 +738,7 @@ onUnmounted(() => {
 }
 .notes { margin: 1.1rem 0 0; font-size: 1.05rem; color: #d7e4de; max-width: 60ch; }
 
-/* ============ PAYMENTS LEDGER — rows cascade in ============ */
+/* PAYMENTS LEDGER */
 .ledger-row {
   display: flex;
   align-items: center;
@@ -701,7 +746,7 @@ onUnmounted(() => {
   padding: 1.25rem 0;
   border-bottom: 1px solid #1d3b35;
   flex-wrap: wrap;
-  animation: rise .5s cubic-bezier(.22, 1, .36, 1) both;
+  animation: sweepIn .5s cubic-bezier(.22, 1, .36, 1) both;
 }
 .ledger-row:last-child { border-bottom: none; }
 .ref {
@@ -741,9 +786,19 @@ onUnmounted(() => {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes rise {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: none; }
+
+/* SWEEP-IN — the slider's grammar at page scale:
+   sections wipe clean from the left */
+@keyframes sweepIn {
+  from {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0 round 20px);
+  }
+  60% { opacity: 1; }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 20px);
+  }
 }
 
 @media (max-width: 640px) {
@@ -758,9 +813,10 @@ onUnmounted(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .glow-a, .glow-b, .bar-fill::after, .compare.idle .knob::after,
+  .glow-a, .glow-b, .compare.idle .knob::after,
   .status-banner.pending, .block, .ledger-row, .glance {
     animation: none !important;
   }
+  .block::before, .glance::before { display: none; }
 }
 </style>
