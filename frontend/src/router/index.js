@@ -11,6 +11,7 @@ const router = createRouter({
     { path: '/how-it-works', name: 'howItWorks', component: () => import('../views/HowItWorks.vue') },
     { path: '/login', name: 'login', component: () => import('../views/Login.vue') },
     { path: '/signup', name: 'signup', component: () => import('../views/Signup.vue') },
+    { path: '/reset-password', name: 'passwordReset', component: () => import('../views/PasswordReset.vue') },
     { path: '/payment', name: 'payment', component: () => import('../views/Payment.vue') },
     { path: '/payment/success/:id', name: 'paymentSuccess', component: () => import('../views/PaymentSuccess.vue') },
     { path: '/resident', redirect: '/resident/dashboard' },
