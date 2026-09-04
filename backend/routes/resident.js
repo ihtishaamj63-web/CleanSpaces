@@ -1,7 +1,11 @@
 import { Router } from 'express'
+import auth from '../middleware/auth.js'
+import { createCleanupRequest, listMyCleanupRequests } from '../controllers/residentController.js'
 
 const router = Router()
 
-// Replace this stub with your real endpoints (see the dev plan for your list).
+router.use(auth)
+router.post('/cleanup-requests', createCleanupRequest)
+router.get('/cleanup-requests', listMyCleanupRequests)
 
 export default router

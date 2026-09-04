@@ -1,0 +1,1 @@
+<template><section class="placeholder"><h1>Contact us</h1><p>We would love to hear from your community.</p></section></template><style scoped>.placeholder{padding:5rem 1.5rem;text-align:center;min-height:60vh}.placeholder h1{color:var(--green-dark)}</style>

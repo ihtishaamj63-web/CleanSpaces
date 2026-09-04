@@ -1,0 +1,1 @@
+<template><section class="placeholder"><h1>Pricing</h1><p>Plans are tailored to the size of your community zone.</p><router-link to="/how-it-works">Register your zone</router-link></section></template><style scoped>.placeholder{padding:5rem 1.5rem;text-align:center;min-height:60vh}.placeholder h1{color:var(--green-dark)}a{color:var(--green-dark);font-weight:800}</style>

@@ -1,7 +1,13 @@
 import { Router } from 'express'
+import auth, { requireAdmin } from '../middleware/auth.js'
+import { approveZone, listZones, registerZone, rejectZone, zoneMap } from '../controllers/zoneController.js'
 
 const router = Router()
 
-// Replace this stub with your real endpoints (see the dev plan for your list).
+router.post('/register', registerZone)
+router.get('/map', zoneMap)
+router.get('/', auth, requireAdmin, listZones)
+router.put('/:id/approve', auth, requireAdmin, approveZone)
+router.delete('/:id', auth, requireAdmin, rejectZone)
 
 export default router

@@ -34,18 +34,27 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const token = ref(localStorage.getItem('token'))
 const role = ref(localStorage.getItem('role'))
 
+function syncAuth() {
+  token.value = localStorage.getItem('token')
+  role.value = localStorage.getItem('role')
+}
+
+onMounted(() => window.addEventListener('auth-change', syncAuth))
+onBeforeUnmount(() => window.removeEventListener('auth-change', syncAuth))
+
 function logout() {
   localStorage.removeItem('token')
   localStorage.removeItem('role')
   token.value = null
   role.value = null
+  window.dispatchEvent(new Event('auth-change'))
   router.push('/')
 }
 </script>
