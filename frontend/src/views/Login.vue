@@ -29,6 +29,7 @@
             v-model="loginForm.email"
             type="email"
             placeholder="Enter your mail address"
+            autocomplete="off"
             required
           />
         </div>
@@ -42,6 +43,7 @@
               v-model="loginForm.password"
               :type="showPassword ? 'text' : 'password'"
               placeholder="Enter password"
+              autocomplete="new-password"
               required
             />
             <button
@@ -75,15 +77,17 @@
         <div class="divider"><span>Or, Login with</span></div>
 
         <!-- Google -->
-        <button type="button" class="btn-google" @click="handleGoogleLogin">
-          <svg viewBox="0 0 48 48" width="20" height="20">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.87 7.35 2.56 10.56l7.97-5.97z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 5.97C6.51 42.62 14.62 48 24 48z"/>
-          </svg>
-          Sign up with Google
-        </button>
+        <GoogleLogin :callback="handleGoogleLogin" :error="handleGoogleError" popup-type="TOKEN">
+          <button type="button" class="btn-google" :disabled="isGoogleLoading">
+            <svg viewBox="0 0 48 48" width="20" height="20">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.99 23.99 0 0 0 0 24c0 3.77.87 7.35 2.56 10.56l7.97-5.97z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 5.97C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            {{ isGoogleLoading ? 'Signing In…' : 'Sign in with Google' }}
+          </button>
+        </GoogleLogin>
 
         <!-- Footer -->
         <p class="footer-text">
@@ -128,19 +132,23 @@
 </template>
 
 <script>
+import { GoogleLogin } from 'vue3-google-login'
+
 export default {
   name: 'LoginPage',
+  components: { GoogleLogin },
   data() {
     return {
       viewMode: 'login',
       loginForm: {
-        email: 'admin@cleanspaces.co.za',  // Pre-filled
-        password: 'Admin@2026',             // Pre-filled
-        rememberMe: false
+        email: localStorage.getItem('savedEmail') || '',
+        password: '',
+        rememberMe: !!localStorage.getItem('savedEmail')
       },
       resetEmail: '',
       showPassword: true,
       isLoading: false,
+      isGoogleLoading: false,
       errorMessage: ''
     }
   },
@@ -151,38 +159,11 @@ export default {
       this.isLoading = false
     },
 
-    // ============================================================
-    // HANDLE LOGIN — MOCK MODE (works without backend)
-    // ============================================================
+    // HANDLE LOGIN
     async handleLogin() {
       this.isLoading = true
       this.errorMessage = ''
 
-      // --- MOCK LOGIN (no backend needed) ---
-      setTimeout(() => {
-        this.isLoading = false
-
-        // Check against test accounts
-        if (this.loginForm.email === 'admin@cleanspaces.co.za' && this.loginForm.password === 'Admin@2026') {
-          localStorage.setItem('token', 'mock-token-admin')
-          localStorage.setItem('user', JSON.stringify({ name: 'Admin', email: 'admin@cleanspaces.co.za', role: 'admin' }))
-          localStorage.setItem('role', 'admin')
-          this.$router.push('/admin/dashboard')
-        } 
-        else if (this.loginForm.email === 'thandiwe@gmail.com' && this.loginForm.password === 'Resident@2026') {
-          localStorage.setItem('token', 'mock-token-resident')
-          localStorage.setItem('user', JSON.stringify({ name: 'Thandiwe Mbeki', email: 'thandiwe@gmail.com', role: 'resident' }))
-          localStorage.setItem('role', 'resident')
-          this.$router.push('/resident/dashboard')
-        } 
-        else {
-          this.errorMessage = 'Invalid email or password. Try admin@cleanspaces.co.za / Admin@2026'
-        }
-      }, 800)
-
-      return // ⬅️ DELETE THIS LINE when backend is ready
-
-      /* --- REAL BACKEND (uncomment when backend is running) ---
       try {
         const response = await fetch('/api/auth/login', {
           method: 'POST',
@@ -209,35 +190,25 @@ export default {
         localStorage.setItem('user', JSON.stringify(data.user))
         localStorage.setItem('role', data.user.role)
 
+        if (this.loginForm.rememberMe) {
+          localStorage.setItem('savedEmail', this.loginForm.email)
+        } else {
+          localStorage.removeItem('savedEmail')
+        }
+
         this.$router.push(data.user.role === 'admin' ? '/admin/dashboard' : '/resident/dashboard')
       } catch (error) {
         this.errorMessage = error.message || 'Unable to login. Please try again.'
       } finally {
         this.isLoading = false
       }
-      */
     },
 
-    // ============================================================
-    // HANDLE RESET PASSWORD — MOCK MODE
-    // ============================================================
+    // HANDLE RESET PASSWORD 
     async handleResetPassword() {
       this.isLoading = true
       this.errorMessage = ''
 
-      // --- MOCK RESET ---
-      setTimeout(() => {
-        this.isLoading = false
-        if (this.resetEmail === 'admin@cleanspaces.co.za' || this.resetEmail === 'thandiwe@gmail.com') {
-          this.switchMode('success')
-        } else {
-          this.errorMessage = 'No account found with this email address.'
-        }
-      }, 800)
-
-      return // ⬅️ DELETE THIS LINE when backend is ready
-
-      /* --- REAL BACKEND (uncomment when backend is running) ---
       try {
         const response = await fetch('/api/auth/forgot-password', {
           method: 'POST',
@@ -262,18 +233,60 @@ export default {
         this.isLoading = false
         this.errorMessage = error.message || 'Something went wrong. Please try again.'
       }
-      */
     },
 
-    handleGoogleLogin() {
-      alert('Google login coming soon!')
+    // HANDLE GOOGLE LOGIN
+    // Custom Google buttons return an access_token (not a credential
+    // JWT), so we send that to the backend for verification instead.
+    async handleGoogleLogin(response) {
+      this.isGoogleLoading = true
+      this.errorMessage = ''
+
+      try {
+        const accessToken = response.access_token
+        if (!accessToken) {
+          throw new Error('No access token returned from Google.')
+        }
+
+        const apiResponse = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: accessToken })
+        })
+
+        const text = await apiResponse.text()
+        if (!text) {
+          throw new Error('Server returned an empty response. Make sure the backend is running.')
+        }
+
+        const data = JSON.parse(text)
+
+        if (!apiResponse.ok) {
+          throw new Error(data.message || 'Google sign-in failed.')
+        }
+
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+        localStorage.setItem('role', data.user.role)
+
+        this.$router.push(data.user.role === 'admin' ? '/admin/dashboard' : '/resident/dashboard')
+      } catch (error) {
+        this.errorMessage = error.message || 'Unable to sign in with Google.'
+      } finally {
+        this.isGoogleLoading = false
+      }
+    },
+
+    handleGoogleError() {
+      this.isGoogleLoading = false
+      this.errorMessage = 'Google sign-in was cancelled or failed. Please try again.'
     }
   }
 }
 </script>
 
 <style scoped>
-/* ===== PAGE CONTAINER ===== */
+/* PAGE CONTAINER */
 .login-page {
   position: relative;
   min-height: 100vh;
@@ -285,7 +298,7 @@ export default {
   overflow: hidden;
 }
 
-/* ===== BACKGROUND EFFECTS ===== */
+/* BACKGROUND EFFECTS */
 .bg-glow {
   position: absolute;
   inset: 0;
@@ -304,7 +317,7 @@ export default {
   pointer-events: none;
 }
 
-/* ===== LOGIN CARD ===== */
+/* LOGIN CARD */
 .login-card {
   position: relative;
   width: 100%;
@@ -316,7 +329,7 @@ export default {
   box-shadow: 0 30px 60px rgba(10, 24, 20, 0.40);
 }
 
-/* ===== BRAND HEADER ===== */
+/* BRAND HEADER */
 .brand-header {
   text-align: center;
   margin-bottom: 2rem;
@@ -353,7 +366,7 @@ export default {
   color: #B9C9C2;
 }
 
-/* ===== FORM ===== */
+/* FORM */
 .login-form {
   display: flex;
   flex-direction: column;
@@ -395,7 +408,7 @@ export default {
   background: rgba(247, 243, 232, 0.08);
 }
 
-/* ===== PASSWORD TOGGLE ===== */
+/* PASSWORD TOGGLE */
 .password-wrapper {
   display: flex;
   align-items: center;
@@ -423,7 +436,7 @@ export default {
   background: rgba(247, 243, 232, 0.08);
 }
 
-/* ===== FORM OPTIONS ===== */
+/* FORM OPTIONS */
 .form-options {
   display: flex;
   justify-content: space-between;
@@ -457,7 +470,7 @@ export default {
   opacity: 0.8;
 }
 
-/* ===== ERROR ===== */
+/* ERROR */
 .error-text {
   color: #F19A83;
   font-size: 0.85rem;
@@ -466,7 +479,7 @@ export default {
   font-weight: 500;
 }
 
-/* ===== PRIMARY BUTTON ===== */
+/* PRIMARY BUTTON */
 .btn-primary {
   padding: 0.9rem;
   background: linear-gradient(135deg, #F0B65A, #E0952E);
@@ -491,7 +504,7 @@ export default {
   transform: none;
 }
 
-/* ===== DIVIDER ===== */
+/* DIVIDER */
 .divider {
   display: flex;
   align-items: center;
@@ -508,7 +521,7 @@ export default {
   background: rgba(247, 243, 232, 0.10);
 }
 
-/* ===== GOOGLE BUTTON ===== */
+/* GOOGLE BUTTON */
 .btn-google {
   display: flex;
   align-items: center;

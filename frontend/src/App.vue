@@ -9,8 +9,13 @@
         </router-link>
 
         <!-- ===== NAV LINKS ===== -->
-        <!-- Admin link REMOVED from here — only Pricing through Contact -->
         <nav class="nav-links">
+          <router-link
+            v-if="token"
+            :to="role === 'admin' ? '/admin/dashboard' : '/resident/dashboard'"
+          >
+            Dashboard
+          </router-link>
           <router-link to="/pricing">Pricing</router-link>
           <router-link to="/how-it-works">How It Works</router-link>
           <router-link to="/reviews">Reviews</router-link>
