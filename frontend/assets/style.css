@@ -1,0 +1,78 @@
+/* ============ CleanSpaces shared design tokens ============ */
+:root {
+  /* Krish's theme palette (kept for any existing references) */
+  --vt-c-white: #ffffff;
+  --vt-c-white-soft: #f8f8f8;
+  --vt-c-white-mute: #f2f2f2;
+  --vt-c-black: #181818;
+  --vt-c-black-soft: #222222;
+  --vt-c-black-mute: #282828;
+  --vt-c-indigo: #2c3e50;
+
+  /* CleanSpaces palette */
+  --green-dark: #12332d;       /* headers, navbar, dark cards */
+  --green-deeper: #0b2a25;     /* text on green buttons, dark inputs */
+  --green: #7cb342;            /* primary accent, buttons, links */
+  --green-hover: #8bc34a;
+  --green-tint: #edf5e3;       /* light green highlight backgrounds */
+  --bg: #f4f6f5;               /* page background */
+  --card: #ffffff;
+  --text: #2e3d39;
+  --text-muted: #6a7a76;       /* muted text on light backgrounds */
+  --text-muted-dark: #a0b0ac;  /* muted text on dark green */
+  --border: #e0e5e2;
+
+  --color-background: var(--bg);
+  --color-text: var(--text);
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  transition: color 0.5s, background-color 0.5s;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img { max-width: 100%; }
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+/* ============ Shared building blocks (scoped styles can override) ============ */
+.section-heading { text-align: center; margin-bottom: 2rem; }
+.section-heading h2 { margin: 0 0 .4rem; font-size: 2rem; color: var(--green-dark); }
+.section-heading p { margin: 0; color: var(--text-muted); }
+
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, .05);
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: inline-block;
+  padding: .85rem 1.6rem;
+  border-radius: 8px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.btn-primary { color: var(--green-deeper); background: var(--green); }
+.btn-primary:hover { background: var(--green-hover); }
+.btn-secondary { color: var(--green-dark); background: transparent; border: 2px solid var(--green-dark); }
