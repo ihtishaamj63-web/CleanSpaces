@@ -56,13 +56,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 const token = ref(localStorage.getItem('token'))
 const role = ref(localStorage.getItem('role'))
 const scrolled = ref(false)
+
+function syncSession() {
+  token.value = localStorage.getItem('token')
+  role.value = localStorage.getItem('role')
+}
 
 function onScroll() {
   scrolled.value = window.scrollY > 12
@@ -77,7 +83,15 @@ function logout() {
 }
 
 onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
-onUnmounted(() => window.removeEventListener('scroll', onScroll))
+onMounted(() => {
+  window.addEventListener('storage', syncSession)
+  syncSession()
+})
+watch(() => route.fullPath, syncSession)
+onUnmounted(() => {
+  window.removeEventListener('scroll', onScroll)
+  window.removeEventListener('storage', syncSession)
+})
 </script>
 
 <style scoped>

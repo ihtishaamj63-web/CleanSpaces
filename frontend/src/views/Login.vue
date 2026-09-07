@@ -46,7 +46,13 @@
         </button>
 
         <div class="divider">Or, Login with</div>
-        <GoogleLogin :callback="handleGoogleLogin" :error="handleGoogleError" popup-type="TOKEN">
+        <GoogleLogin
+          v-if="googleClientId"
+          :client-id="googleClientId"
+          :callback="handleGoogleLogin"
+          :error="handleGoogleError"
+          popup-type="TOKEN"
+        >
           <button class="btn-google" type="button" :disabled="isGoogleLoading">
             <svg class="google-icon" viewBox="0 0 48 48" aria-hidden="true">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
@@ -57,6 +63,7 @@
             {{ isGoogleLoading ? 'Signing In...' : 'Sign in with Google' }}
           </button>
         </GoogleLogin>
+        <p v-else class="google-config-message">Google sign-in is unavailable until it is configured.</p>
         <p class="footer-text">Don't have an account? <router-link to="/signup">Register here</router-link></p>
       </form>
 
@@ -80,6 +87,8 @@
 <script>
 import { GoogleLogin } from 'vue3-google-login'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
+
 export default {
   name: 'LoginPage',
   components: { GoogleLogin },
@@ -92,7 +101,8 @@ export default {
       showPassword: false,
       isLoading: false,
       isGoogleLoading: false,
-      errorMessage: ''
+      errorMessage: '',
+      googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
     }
   },
   computed: {
@@ -110,8 +120,8 @@ export default {
       this.isLoading = true
       this.errorMessage = ''
       try {
-        const response = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: this.loginForm.email, password: this.loginForm.password }) })
-        const data = await response.json()
+        const response = await fetch(`${API_BASE_URL}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: this.loginForm.email, password: this.loginForm.password }) })
+        const data = await this.readJsonResponse(response)
         if (!response.ok) throw new Error(data.message || 'Login failed.')
         localStorage.setItem('token', data.token)
         localStorage.setItem('user', JSON.stringify(data.user))
@@ -120,9 +130,20 @@ export default {
         else localStorage.removeItem('savedEmail')
         this.$router.push(data.user.role === 'admin' ? '/admin/dashboard' : '/resident/dashboard')
       } catch (error) {
-        this.errorMessage = error.message || 'Unable to login. Please try again.'
+        this.errorMessage = error instanceof TypeError
+          ? 'Cannot reach the server. Make sure the backend is running on port 5000.'
+          : error.message || 'Unable to login. Please try again.'
       } finally {
         this.isLoading = false
+      }
+    },
+    async readJsonResponse(response) {
+      const text = await response.text()
+      if (!text) return {}
+      try {
+        return JSON.parse(text)
+      } catch {
+        return { message: `Server returned an invalid response (${response.status}).` }
       }
     },
     async handleForgotPassword() {
@@ -131,7 +152,7 @@ export default {
       this.resetLink = ''
       try {
         const response = await fetch('/api/auth/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: this.resetEmail }) })
-        const data = await response.json()
+        const data = await this.readJsonResponse(response)
         if (!response.ok) throw new Error(data.message || 'Unable to create reset link.')
         this.resetLink = data.resetLink || ''
         if (!this.resetLink) this.errorMessage = 'No account was found for that email address.'
@@ -148,8 +169,8 @@ export default {
         const credential = response.credential || response.access_token
         if (!credential) throw new Error('No Google credential returned.')
         const body = response.credential ? { credential } : { access_token: credential }
-        const apiResponse = await fetch('/api/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-        const data = await apiResponse.json()
+        const apiResponse = await fetch(`${API_BASE_URL}/auth/google`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        const data = await this.readJsonResponse(apiResponse)
         if (!apiResponse.ok) throw new Error(data.message || 'Google sign-in failed.')
         localStorage.setItem('token', data.token)
         localStorage.setItem('user', JSON.stringify(data.user))
@@ -193,4 +214,5 @@ h1 { margin: 1rem 0 .4rem; }
 a { color: #f0a52b; }
 .error-text { color: #ff9d91 !important; }
 .success-text { color: #a9e6b4 !important; }
+.google-config-message { color: #b9c9c2 !important; text-align: center; }
 </style>

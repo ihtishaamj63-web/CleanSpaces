@@ -389,7 +389,7 @@ onUnmounted(() => {
   position: relative;
   max-width: 960px;
   margin: 0 auto;
-  padding: 5rem 1.5rem 2.5rem;
+  padding: 4.5rem 1.5rem 2.5rem;
 }
 .eyebrow {
   margin: 0 0 .7rem;
@@ -790,7 +790,8 @@ onUnmounted(() => {
 }
 
 @media (max-width: 640px) {
-  .hero { padding-top: 3.5rem; }
+  .hero { padding-top: 3.25rem; }
+  .hero h1 { font-size: clamp(2.25rem, 12vw, 3.4rem); }
   .rail { gap: 1.75rem; }
   .block { padding: 1.5rem 1.25rem; }
   .glance { grid-template-columns: repeat(2, 1fr); }
