@@ -110,12 +110,14 @@ export default {
 }
 .hero-section h1 {
   position: relative;
-  font-family: 'Fraunces', serif;
-  font-weight: 600;
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;              /* was 600 — heavier reads better as fallback */
   font-size: clamp(2.2rem, 4.5vw, 3.4rem);
   line-height: 1.1;
   margin: 0 0 1.1rem;
   letter-spacing: -.01em;
+  color: #ffffff;                /* was inherit — pure white */
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);   /* separation from gradient */
 }
 .hero-sub {
   position: relative;

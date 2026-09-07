@@ -352,6 +352,9 @@
   font-size: clamp(2rem, 4vw, 3.5rem);
   line-height: 1.1;
   letter-spacing: -0.04em;
+  color: #ffffff;
+  font-weight: 700;
+  text-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
 }
 
 .mission-content p {

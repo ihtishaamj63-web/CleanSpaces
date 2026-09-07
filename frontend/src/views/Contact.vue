@@ -55,7 +55,7 @@
               <div class="card-arrow"></div>
             </a>
 
-            <a href="tel:021555 0147" class="contact-card">
+            <a href="tel:0215550147" class="contact-card">
               <div class="card-number"></div>
 
               <div class="card-icon">☎</div>
@@ -76,7 +76,7 @@
                 <h3>Report a Waste Issue</h3>
               </div>
 
-              <div class="card-arrow"></div>
+              <div class="card-arrow">→</div>
             </button>
 
             <a
@@ -88,7 +88,7 @@
               <div class="action-icon">💬</div>
 
               <div class="action-content">
-                <span>QUICK & EASY</span>
+                <span>QUICK &amp; EASY</span>
                 <h3>Chat With Us on WhatsApp</h3>
               </div>
 
@@ -110,7 +110,6 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="name">Full Name</label>
-
                   <input
                     id="name"
                     v-model="form.name"
@@ -122,7 +121,6 @@
 
                 <div class="form-group">
                   <label for="email">Email Address</label>
-
                   <input
                     id="email"
                     v-model="form.email"
@@ -136,7 +134,6 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="phone">Phone Number</label>
-
                   <input
                     id="phone"
                     v-model="form.phone"
@@ -147,7 +144,6 @@
 
                 <div class="form-group">
                   <label for="subject">Subject</label>
-
                   <input
                     id="subject"
                     v-model="form.subject"
@@ -160,7 +156,6 @@
 
               <div class="form-group">
                 <label for="message">Your Message</label>
-
                 <textarea
                   id="message"
                   v-model="form.message"
@@ -176,6 +171,7 @@
               </button>
             </form>
           </div>
+
           <!-- FAQ SECTION -->
           <section class="faq-section">
             <div class="faq-heading">
@@ -190,16 +186,11 @@
             </div>
 
             <div class="faq-list">
-              <!-- FAQ 1 -->
               <div class="faq-item" :class="{ active: activeFaq === 0 }">
                 <button class="faq-question" @click="toggleFaq(0)">
                   <span>How do I report a waste issue?</span>
-
-                  <span class="faq-icon">
-                    {{ activeFaq === 0 ? "−" : "+" }}
-                  </span>
+                  <span class="faq-icon">{{ activeFaq === 0 ? "−" : "+" }}</span>
                 </button>
-
                 <div v-if="activeFaq === 0" class="faq-answer">
                   <p>
                     You can report a waste issue by clicking the
@@ -210,16 +201,11 @@
                 </div>
               </div>
 
-              <!-- FAQ 2 -->
               <div class="faq-item" :class="{ active: activeFaq === 1 }">
                 <button class="faq-question" @click="toggleFaq(1)">
                   <span>How can I get involved with CleanSpaces?</span>
-
-                  <span class="faq-icon">
-                    {{ activeFaq === 1 ? "−" : "+" }}
-                  </span>
+                  <span class="faq-icon">{{ activeFaq === 1 ? "−" : "+" }}</span>
                 </button>
-
                 <div v-if="activeFaq === 1" class="faq-answer">
                   <p>
                     You can get involved by reporting waste issues,
@@ -229,16 +215,11 @@
                 </div>
               </div>
 
-              <!-- FAQ 3 -->
               <div class="faq-item" :class="{ active: activeFaq === 2 }">
                 <button class="faq-question" @click="toggleFaq(2)">
                   <span>What happens after I report a waste issue?</span>
-
-                  <span class="faq-icon">
-                    {{ activeFaq === 2 ? "−" : "+" }}
-                  </span>
+                  <span class="faq-icon">{{ activeFaq === 2 ? "−" : "+" }}</span>
                 </button>
-
                 <div v-if="activeFaq === 2" class="faq-answer">
                   <p>
                     Your report provides important information about the
@@ -248,16 +229,11 @@
                 </div>
               </div>
 
-              <!-- FAQ 4 -->
               <div class="faq-item" :class="{ active: activeFaq === 3 }">
                 <button class="faq-question" @click="toggleFaq(3)">
                   <span>Can I contact CleanSpaces directly?</span>
-
-                  <span class="faq-icon">
-                    {{ activeFaq === 3 ? "−" : "+" }}
-                  </span>
+                  <span class="faq-icon">{{ activeFaq === 3 ? "−" : "+" }}</span>
                 </button>
-
                 <div v-if="activeFaq === 3" class="faq-answer">
                   <p>
                     Yes. You can contact us using the email address, phone
@@ -274,7 +250,6 @@
     <transition name="popup">
       <div v-if="showSuccess" class="success-popup">
         <div class="success-icon">✓</div>
-
         <div>
           <strong>Message Sent!</strong>
           <p>Thank you for contacting CleanSpaces.</p>
@@ -338,7 +313,6 @@ const submitForm = async () => {
 };
 
 const reportIssue = () => {
-  // Change this route if your report issue page has a different path
   window.location.href = "/report-issue";
 };
 </script>
@@ -359,7 +333,6 @@ const reportIssue = () => {
   text-align: center;
   padding: 80px 20px;
   overflow: hidden;
-
   background: linear-gradient(
     135deg,
     rgba(16, 72, 48, 0.96),
@@ -370,18 +343,9 @@ const reportIssue = () => {
 .hero-overlay {
   position: absolute;
   inset: 0;
-
   background:
-    radial-gradient(
-      circle at 20% 20%,
-      rgba(255, 255, 255, 0.12),
-      transparent 35%
-    ),
-    radial-gradient(
-      circle at 80% 80%,
-      rgba(255, 255, 255, 0.08),
-      transparent 35%
-    );
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.12), transparent 35%),
+    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.08), transparent 35%);
 }
 
 .hero-content {
@@ -394,10 +358,8 @@ const reportIssue = () => {
   display: inline-block;
   margin-bottom: 20px;
   padding: 8px 16px;
-
   border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 50px;
-
   color: #ffffff;
   font-size: 12px;
   font-weight: 700;
@@ -406,7 +368,6 @@ const reportIssue = () => {
 
 .hero-content h1 {
   margin: 0 0 20px;
-
   color: white;
   font-size: clamp(40px, 6vw, 68px);
   line-height: 1.05;
@@ -416,7 +377,6 @@ const reportIssue = () => {
 .hero-content p {
   max-width: 650px;
   margin: auto;
-
   color: rgba(255, 255, 255, 0.85);
   font-size: 17px;
   line-height: 1.7;
@@ -447,7 +407,6 @@ const reportIssue = () => {
 
 .section-heading h2 {
   margin: 12px 0 15px;
-
   font-size: clamp(32px, 5vw, 52px);
   line-height: 1.1;
 }
@@ -478,45 +437,30 @@ const reportIssue = () => {
 .contact-card,
 .action-card {
   position: relative;
-
   width: 100%;
   min-height: 105px;
-
   display: flex;
   align-items: center;
-
   padding: 22px 28px;
-
   border: 1px solid #e0e8e2;
   border-radius: 18px;
-
   background: white;
-
   text-decoration: none;
   color: inherit;
-
   cursor: pointer;
-
-  transition:
-    transform 0.35s ease,
-    box-shadow 0.35s ease,
-    border-color 0.35s ease;
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
 }
 
 .contact-card:hover,
 .action-card:hover {
   transform: translateY(-6px);
-
   border-color: #62b987;
-
   box-shadow: 0 18px 40px rgba(37, 91, 60, 0.12);
 }
 
 .card-number {
   width: 42px;
-
   color: #a1aea6;
-
   font-size: 12px;
   font-weight: 800;
 }
@@ -525,24 +469,15 @@ const reportIssue = () => {
 .action-icon {
   width: 55px;
   height: 55px;
-
   flex-shrink: 0;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   margin-right: 22px;
-
   border-radius: 15px;
-
   background: #edf8f1;
-
   font-size: 22px;
-
-  transition:
-    transform 0.35s ease,
-    background 0.35s ease;
+  transition: transform 0.35s ease, background 0.35s ease;
 }
 
 .contact-card:hover .card-icon,
@@ -560,9 +495,7 @@ const reportIssue = () => {
 .action-content span {
   display: block;
   margin-bottom: 5px;
-
   color: #819087;
-
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 1.5px;
@@ -571,18 +504,14 @@ const reportIssue = () => {
 .card-content h3,
 .action-content h3 {
   margin: 0;
-
   font-size: 18px;
   font-weight: 700;
 }
 
 .card-arrow {
   margin-left: 20px;
-
   color: #3b9b68;
-
   font-size: 26px;
-
   transition: transform 0.35s ease;
 }
 
@@ -598,21 +527,29 @@ const reportIssue = () => {
 
 .report-card {
   margin-top: 12px;
-
   background: #17251d;
   color: white;
 }
 
+/* THE FIX — the report button's text, high contrast */
+.report-card .action-content h3 {
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
 .report-card .action-content span {
-  color: #8bcba4;
+  color: #a9d8b8;
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
 .report-card .action-icon {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .report-card .card-arrow {
-  color: #8bcba4;
+  color: #a9d8b8;
 }
 
 .whatsapp-card {
@@ -626,13 +563,9 @@ const reportIssue = () => {
 
 .message-form {
   padding: 50px;
-
   border-radius: 28px;
-
   background: white;
-
   border: 1px solid #e1e9e3;
-
   box-shadow: 0 20px 60px rgba(30, 70, 45, 0.08);
 }
 
@@ -642,13 +575,11 @@ const reportIssue = () => {
 
 .form-heading h2 {
   margin: 10px 0;
-
   font-size: 38px;
 }
 
 .form-heading p {
   margin: 0;
-
   color: #718078;
   line-height: 1.6;
 }
@@ -665,11 +596,8 @@ const reportIssue = () => {
 
 .form-group label {
   display: block;
-
   margin-bottom: 8px;
-
   color: #34423a;
-
   font-size: 13px;
   font-weight: 700;
 }
@@ -678,33 +606,21 @@ const reportIssue = () => {
 .form-group textarea {
   width: 100%;
   box-sizing: border-box;
-
   padding: 15px 17px;
-
   border: 1px solid #dce5df;
   border-radius: 12px;
-
   background: #fbfdfb;
-
   color: #17251d;
-
   font-family: inherit;
   font-size: 14px;
-
   outline: none;
-
-  transition:
-    border-color 0.25s ease,
-    box-shadow 0.25s ease,
-    background 0.25s ease;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
   border-color: #3b9b68;
-
   background: white;
-
   box-shadow: 0 0 0 4px rgba(59, 155, 104, 0.1);
 }
 
@@ -718,40 +634,27 @@ const reportIssue = () => {
   align-items: center;
   justify-content: center;
   gap: 15px;
-
   width: 100%;
-
   padding: 16px 24px;
-
   border: none;
   border-radius: 12px;
-
   background: #26734d;
   color: white;
-
   font-family: inherit;
   font-size: 14px;
   font-weight: 700;
-
   cursor: pointer;
-
-  transition:
-    transform 0.3s ease,
-    background 0.3s ease,
-    box-shadow 0.3s ease;
+  transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
 }
 
 .submit-btn:hover {
   transform: translateY(-3px);
-
   background: #1e6040;
-
   box-shadow: 0 12px 25px rgba(38, 115, 77, 0.25);
 }
 
 .submit-arrow {
   font-size: 20px;
-
   transition: transform 0.3s ease;
 }
 
@@ -761,38 +664,27 @@ const reportIssue = () => {
 
 .success-popup {
   position: fixed;
-
   right: 25px;
   bottom: 25px;
-
   z-index: 1000;
-
   display: flex;
   align-items: center;
   gap: 15px;
-
   padding: 18px 22px;
-
   border-radius: 16px;
-
   background: #17251d;
   color: white;
-
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
 }
 
 .success-icon {
   width: 40px;
   height: 40px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   border-radius: 50%;
-
   background: #3b9b68;
-
   font-size: 20px;
   font-weight: bold;
 }
@@ -804,22 +696,127 @@ const reportIssue = () => {
 
 .success-popup p {
   margin: 0;
-
   color: #b9c9c0;
   font-size: 13px;
 }
 
 .popup-enter-active,
 .popup-leave-active {
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .popup-enter-from,
 .popup-leave-to {
   opacity: 0;
   transform: translateY(20px);
+}
+
+.faq-section {
+  max-width: 900px;
+  margin: 100px auto 0;
+}
+
+.faq-heading {
+  text-align: center;
+  margin-bottom: 45px;
+}
+
+.faq-heading > span {
+  color: #3b9b68;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.faq-heading h2 {
+  margin: 12px 0 15px;
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.1;
+}
+
+.faq-heading h2 strong {
+  color: #3b9b68;
+}
+
+.faq-heading p {
+  max-width: 600px;
+  margin: auto;
+  color: #718078;
+  line-height: 1.7;
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.faq-item {
+  overflow: hidden;
+  border: 1px solid #e0e8e2;
+  border-radius: 16px;
+  background: white;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.faq-item.active {
+  border-color: #62b987;
+  box-shadow: 0 12px 30px rgba(37, 91, 60, 0.08);
+}
+
+.faq-question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 25px;
+  border: none;
+  background: transparent;
+  color: #17251d;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.faq-question:hover {
+  color: #26734d;
+}
+
+.faq-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #edf8f1;
+  color: #3b9b68;
+  font-size: 22px;
+  font-weight: 500;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.faq-item.active .faq-icon {
+  background: #3b9b68;
+  color: white;
+}
+
+.faq-answer {
+  padding: 0 25px 23px;
+}
+
+.faq-answer p {
+  margin: 0;
+  color: #718078;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.faq-answer strong {
+  color: #26734d;
 }
 
 @media (max-width: 700px) {
@@ -840,7 +837,6 @@ const reportIssue = () => {
   .action-icon {
     width: 48px;
     height: 48px;
-
     margin-right: 15px;
   }
 
@@ -867,142 +863,7 @@ const reportIssue = () => {
     right: 16px;
     bottom: 16px;
   }
-}
-.faq-section {
-  max-width: 900px;
-  margin: 100px auto 0;
-}
 
-.faq-heading {
-  text-align: center;
-  margin-bottom: 45px;
-}
-
-.faq-heading > span {
-  color: #3b9b68;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 2px;
-}
-
-.faq-heading h2 {
-  margin: 12px 0 15px;
-
-  font-size: clamp(32px, 5vw, 48px);
-  line-height: 1.1;
-}
-
-.faq-heading h2 strong {
-  color: #3b9b68;
-}
-
-.faq-heading p {
-  max-width: 600px;
-  margin: auto;
-
-  color: #718078;
-  line-height: 1.7;
-}
-
-.faq-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.faq-item {
-  overflow: hidden;
-
-  border: 1px solid #e0e8e2;
-  border-radius: 16px;
-
-  background: white;
-
-  transition:
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-.faq-item.active {
-  border-color: #62b987;
-
-  box-shadow: 0 12px 30px rgba(37, 91, 60, 0.08);
-}
-
-.faq-question {
-  width: 100%;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  padding: 22px 25px;
-
-  border: none;
-  background: transparent;
-
-  color: #17251d;
-
-  font-family: inherit;
-  font-size: 16px;
-  font-weight: 700;
-
-  text-align: left;
-
-  cursor: pointer;
-}
-
-.faq-question:hover {
-  color: #26734d;
-}
-
-.faq-icon {
-  width: 34px;
-  height: 34px;
-
-  flex-shrink: 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  background: #edf8f1;
-
-  color: #3b9b68;
-
-  font-size: 22px;
-  font-weight: 500;
-
-  transition:
-    transform 0.3s ease,
-    background 0.3s ease;
-}
-
-.faq-item.active .faq-icon {
-  background: #3b9b68;
-  color: white;
-}
-
-.faq-answer {
-  padding: 0 25px 23px;
-}
-
-.faq-answer p {
-  margin: 0;
-
-  color: #718078;
-
-  font-size: 14px;
-  line-height: 1.8;
-}
-
-.faq-answer strong {
-  color: #26734d;
-}
-
-@media (max-width: 700px) {
   .faq-section {
     margin-top: 70px;
   }
