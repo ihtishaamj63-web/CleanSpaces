@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="hiw-page">
     <section class="hero">
       <div>
         <p class="eyebrow">A cleaner neighbourhood starts together</p>
@@ -51,10 +51,10 @@ const steps = [
 </script>
 
 <style scoped>
-/* The page needs its own light canvas — his cards were designed for one */
-.steps,
-.register {
+/* The wrapper carries the full-page light canvas — no dark bleed */
+.hiw-page {
   background: #f4f6f5;
+  min-height: 100vh;
 }
 
 .hero {
