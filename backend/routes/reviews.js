@@ -1,7 +1,8 @@
-import { Router } from 'express'
+import { Router } from "express";
+import { getCleanupPhotos } from "../controllers/reviewController.js";
 
-const router = Router()
+const router = Router();
 
-// Replace this stub with your real endpoints (see the dev plan for your list).
+router.get("/cleanup-photos", getCleanupPhotos);
 
-export default router
+export default router;

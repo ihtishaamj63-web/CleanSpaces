@@ -1,7 +1,15 @@
-import { Router } from 'express'
+import { Router } from "express";
+import {
+  getTestimonials,
+  createTestimonial,
+} from "../controllers/testimonialController.js";
 
-const router = Router()
+const router = Router();
 
-// Replace this stub with your real endpoints (see the dev plan for your list).
+// Public approved testimonials
+router.get("/", getTestimonials);
 
-export default router
+// Submit testimonial
+router.post("/", createTestimonial);
+
+export default router;
