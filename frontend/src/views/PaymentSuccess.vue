@@ -8,7 +8,8 @@
         <p class="tagline">Cleaner Spaces. Stronger Communities.</p>
       </div>
 
-      <div v-if="payment" class="confirmation">
+      <!-- COMPLETED -->
+      <div v-if="payment && payment.status === 'completed'" class="confirmation">
         <div class="check">✓</div>
         <h2 class="confirm-title">Payment Successful</h2>
         <p class="confirm-text">Thank you! Your contribution to your zone has been received.</p>
@@ -19,7 +20,6 @@
           <div class="row"><span>Method</span><span>{{ methodLabel }}</span></div>
         </div>
 
-        <!-- What happens next -->
         <div class="next-steps" v-if="zoneProgress">
           <div class="next-bar">
             <div class="next-fill" :style="{ width: zoneProgress.pct + '%' }"></div>
@@ -37,6 +37,33 @@
           Go to My Dashboard →
         </router-link>
       </div>
+
+      <!-- FAILED -->
+      <div v-else-if="payment && payment.status === 'failed'" class="confirmation">
+        <div class="check failed">✕</div>
+        <h2 class="confirm-title">Payment Not Completed</h2>
+        <p class="confirm-text">
+          The payment was cancelled or declined — no money has left your account.
+        </p>
+        <router-link to="/payment" class="submit-btn">Try Again →</router-link>
+      </div>
+
+      <!-- PENDING — waiting for PayFast's ITN confirmation -->
+      <div v-else-if="payment" class="loading-state">
+        <div class="spinner"></div>
+        <p class="loading-text">Confirming your payment… this can take a few seconds.</p>
+      </div>
+
+      <!-- LOOKUP FAILED -->
+      <div v-else-if="loadFailed" class="loading-state">
+        <p class="loading-text">
+          We couldn't confirm this payment right now. Any completed payment will
+          still appear on your dashboard.
+        </p>
+        <router-link to="/resident/dashboard" class="submit-btn">Go to My Dashboard →</router-link>
+      </div>
+
+      <!-- INITIAL LOAD -->
       <div v-else class="loading-state">
         <div class="spinner"></div>
         <p class="loading-text">Loading your payment…</p>
@@ -53,27 +80,34 @@ import api from '../api.js'
 const route = useRoute()
 const payment = ref(null)
 const zoneProgress = ref(null)
+const loadFailed = ref(false)
+let retries = 0
 
 const METHOD_LABELS = { card: 'Card', eft: 'EFT' }
 const methodLabel = computed(() =>
   METHOD_LABELS[payment.value?.method] || payment.value?.method || '—'
 )
 
-onMounted(async () => {
+async function load() {
   try {
     const res = await api.get(`/payments/return/${route.params.id}`)
     payment.value = res.data
+    // PayFast's ITN webhook is the source of truth and can land moments
+    // after the redirect — poll briefly while the payment is still pending.
+    if (payment.value?.status === 'pending' && retries++ < 4) setTimeout(load, 2500)
   } catch {
-    payment.value = { id: route.params.id, amount: '—', method: '—' }
+    loadFailed.value = true
   }
+}
 
+// Zone activation progress for the "what happens next" block
+async function loadZoneProgress() {
   try {
     const dash = await api.get('/resident/dashboard')
     if (dash.data.hasZone) {
       const z = dash.data.zone
-      const pct = Math.min(100, Math.round((z.paid / z.threshold) * 100))
       zoneProgress.value = {
-        pct,
+        pct: Math.min(100, Math.round((z.paid / z.threshold) * 100)),
         remaining: Math.max(0, z.threshold - z.paid),
         activated: z.paid >= z.threshold
       }
@@ -81,6 +115,11 @@ onMounted(async () => {
   } catch {
     // dashboard unreachable — skip the next-steps block silently
   }
+}
+
+onMounted(async () => {
+  await load()
+  loadZoneProgress()
 })
 </script>
 
@@ -138,6 +177,10 @@ onMounted(async () => {
   box-shadow: 0 8px 24px rgba(124, 179, 66, 0.45);
   animation: pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
 }
+.check.failed {
+  background: linear-gradient(135deg, #ff8a80, #c62828);
+  color: #ffffff;
+}
 .confirm-title { margin: 0 0 .4rem; font-size: 1.45rem; color: #f4f6f5; }
 .confirm-text { margin: 0 0 1.5rem; color: #a0b0ac; font-size: .95rem; }
 
@@ -189,8 +232,7 @@ onMounted(async () => {
   cursor: pointer; text-decoration: none;
   box-shadow: 0 6px 18px rgba(124, 179, 66, 0.4);
   transition: all 0.25s ease;
-  opacity: 0;
-  animation: fadeUp 0.4s ease-out 1.2s forwards;
+  margin-top: 1rem;
 }
 .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(124, 179, 66, 0.55); }
 

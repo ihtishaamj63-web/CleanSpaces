@@ -1,4 +1,5 @@
 import pool from '../db.js'
+import { PLAN_BASE } from '../config/plans.js'
 
 const plans = new Set(['small', 'medium', 'large'])
 
@@ -10,9 +11,10 @@ export async function registerZone(req, res) {
   }
 
   try {
+    // contact details are now stored (previously collected then discarded)
     const [result] = await pool.execute(
-      'INSERT INTO zones (name, neighborhood, households, plan_type, status) VALUES (?, ?, ?, ?, \'pending\')',
-      [name.trim(), neighborhood.trim(), householdCount, plan_type]
+      "INSERT INTO zones (name, neighborhood, households, plan_type, contact_name, contact_phone, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')",
+      [name.trim(), neighborhood.trim(), householdCount, plan_type, contact_name.trim(), contact_phone.trim()]
     )
     return res.status(201).json({ message: 'Your zone has been submitted for review.', zone: { id: result.insertId, name, neighborhood, households: householdCount, plan_type, status: 'pending', contact_name, contact_phone } })
   } catch (error) {
@@ -22,13 +24,15 @@ export async function registerZone(req, res) {
 
 export async function listZones(req, res) {
   try {
-    const [zones] = await pool.query("SELECT id, name, neighborhood, households, plan_type, status, created_at FROM zones ORDER BY FIELD(status, 'pending', 'active'), created_at DESC")
+    const [zones] = await pool.query("SELECT id, name, neighborhood, households, plan_type, contact_name, contact_phone, status, created_at FROM zones ORDER BY FIELD(status, 'pending', 'active'), created_at DESC")
     return res.json(zones)
   } catch {
     return res.status(500).json({ message: 'Unable to load zones.' })
   }
 }
 
+// Public: every zone + a service-status flag, used by the homepage map
+// and the payment page's zone picker.
 export async function zoneMap(req, res) {
   try {
     const [zones] = await pool.query(`
@@ -41,6 +45,9 @@ export async function zoneMap(req, res) {
         END AS cleanup_status
       FROM zones z ORDER BY z.name
     `)
+    // per-household price so the payment page displays it without hardcoding
+    // (single source of truth: config/plans.js)
+    for (const z of zones) z.per_household_amount = Math.round(PLAN_BASE[z.plan_type] / z.households)
     return res.json(zones)
   } catch {
     return res.status(500).json({ message: 'Unable to load map areas.' })

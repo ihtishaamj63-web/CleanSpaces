@@ -12,7 +12,7 @@ const router = createRouter({
     { path: '/login', name: 'login', component: () => import('../views/Login.vue') },
     { path: '/signup', name: 'signup', component: () => import('../views/Signup.vue') },
     { path: '/reset-password', name: 'passwordReset', component: () => import('../views/PasswordReset.vue') },
-    { path: '/payment', name: 'payment', component: () => import('../views/Payment.vue') },
+    { path: '/payment', name: 'payment', component: () => import('../views/Payment.vue'), meta: { requiresAuth: true } },
     { path: '/payment/success/:id', name: 'paymentSuccess', component: () => import('../views/PaymentSuccess.vue') },
     { path: '/resident', redirect: '/resident/dashboard' },
     { path: '/resident/dashboard', name: 'residentDashboard', component: () => import('../views/resident/Dashboard.vue'), meta: { requiresAuth: true } },

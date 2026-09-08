@@ -36,7 +36,7 @@
     <main id="reviews-content">
       <!-- RATING SUMMARY -->
       <section class="rating-section">
-        <div class="section-heading">
+        <div class="section-heading centered">
           <span class="section-label">TRUSTED BY OUR COMMUNITY</span>
           <h2>What people are saying</h2>
           <p>
@@ -695,6 +695,13 @@ main {
   gap: 28px;
 }
 
+/* A lone or trailing odd card shouldn't hug the left column */
+.cleanup-grid > article:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: min(100%, 620px);
+}
+
 .cleanup-card {
   overflow: hidden;
   background: #f8fbf9;
@@ -818,6 +825,13 @@ main {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
+}
+
+/* Same idea: a lone approved review centers instead of hugging the left */
+.testimonials-grid > article:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: min(100%, 360px);
 }
 
 /* FORM */

@@ -1,12 +1,17 @@
 import crypto from 'crypto'
 import db from '../db.js'
+import { PLAN_BASE } from '../config/plans.js'
+
+// Where the Vue app lives — PayFast redirects the browser here after payment
+// (pointing it at the API would show raw JSON).
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 
 // POST /api/payments/create
 export async function createPayment(req, res) {
   try {
     // In production: get user from auth middleware (req.user.id).
     // During development (no auth yet), default to the resident test account.
-    const userId = req.user ? req.user.id : 2
+    const userId = req.user.id
 
     const { zone_id, method } = req.body
 
@@ -17,8 +22,8 @@ export async function createPayment(req, res) {
     const zone = zones[0]
 
     // Per-household share: midpoint of the plan range / households
-    const planBase = { small: 4000, medium: 7250, large: 11500 }[zone.plan_type]
-    const amount = Math.round(planBase / zone.households)
+    // BEFORE
+    const amount = Math.round(PLAN_BASE[zone.plan_type] / zone.households)
 
     // Ensure the user has a zone_members record
     const [membership] = await db.query(

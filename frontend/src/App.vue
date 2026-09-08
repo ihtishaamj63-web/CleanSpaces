@@ -1,5 +1,6 @@
 <template>
-  <header class="nav-shell">
+  <!-- PUBLIC SITE CHROME — hidden on /admin routes, which get their own topbar -->
+  <div v-if="!isAdmin" class="nav-shell">
     <header class="nav" :class="{ scrolled }">
       <router-link to="/" class="brand">
         <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="CleanSpaces" class="logo" />
@@ -29,6 +30,20 @@
         </template>
       </div>
     </header>
+  </div>
+
+  <!-- ADMIN TOPBAR — replaces the marketing nav on admin routes so the
+       admin panel doesn't stack two navbars. Keeps brand, a way back to
+       the public site, and the logout button. -->
+  <header v-else class="admin-topbar">
+    <router-link to="/admin/dashboard" class="admin-brand">
+      <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="CleanSpaces" class="admin-logo" />
+      <span class="admin-wordmark">CLEAN<em>SPACES</em><small>Admin</small></span>
+    </router-link>
+    <div class="admin-topbar-actions">
+      <router-link to="/" class="admin-top-link">View site</router-link>
+      <a href="#" class="admin-top-link logout" @click.prevent="logout">Log Out</a>
+    </div>
   </header>
 
   <main>
@@ -39,7 +54,7 @@
     </router-view>
   </main>
 
-  <footer class="footer">
+  <footer v-if="!isAdmin" class="footer">
     <div class="footer-inner">
       <div class="footer-brand">
         <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="" class="footer-logo" />
@@ -56,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -65,6 +80,11 @@ const token = ref(localStorage.getItem('token'))
 const role = ref(localStorage.getItem('role'))
 const scrolled = ref(false)
 
+// Admin routes get their own chrome (topbar + no marketing footer)
+const isAdmin = computed(() => route.path.startsWith('/admin'))
+
+// Keeps the nav in sync with login/logout happening anywhere
+// (same tab via route changes, other tabs via the storage event).
 function syncSession() {
   token.value = localStorage.getItem('token')
   role.value = localStorage.getItem('role')
@@ -75,8 +95,10 @@ function onScroll() {
 }
 
 function logout() {
+  // clear the full session, not just the token
   localStorage.removeItem('token')
   localStorage.removeItem('role')
+  localStorage.removeItem('user')
   token.value = null
   role.value = null
   router.push('/')
@@ -95,13 +117,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* ---------- FLOATING GLASS NAV ---------- */
+/* ---------- FLOATING GLASS NAV (public site) ---------- */
 .nav-shell {
   position: sticky;
   top: 0;
   z-index: 100;
   padding: 14px 16px 0;
-  /* the shell is transparent; the inner bar is the glass pill */
 }
 
 .nav {
@@ -126,7 +147,6 @@ onUnmounted(() => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
-/* brand */
 .brand {
   display: flex;
   align-items: center;
@@ -160,7 +180,6 @@ onUnmounted(() => {
   color: #7cb342;
 }
 
-/* links */
 .links {
   display: flex;
   gap: 2px;
@@ -180,7 +199,6 @@ onUnmounted(() => {
   color: #f4f6f5;
   background: rgba(255, 255, 255, 0.07);
 }
-/* active link: green dot + brighter */
 .links a.router-link-active {
   color: #7cb342;
   font-weight: 600;
@@ -197,7 +215,6 @@ onUnmounted(() => {
   background: #7cb342;
 }
 
-/* actions */
 .actions {
   display: flex;
   gap: 8px;
@@ -236,6 +253,73 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* ---------- ADMIN TOPBAR (replaces the marketing nav on /admin) ----------
+   Light theme to match the admin pages below it. */
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1.5rem;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+}
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.admin-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  background: var(--green-tint);
+  padding: 4px;
+  border-radius: 8px;
+}
+.admin-wordmark {
+  font-family: 'Sora', sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--green-dark);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.admin-wordmark em {
+  font-style: normal;
+  color: var(--green);
+}
+.admin-wordmark small {
+  margin-left: 0.6rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  background: var(--green-tint);
+  color: var(--green-deep);
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.admin-topbar-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+.admin-top-link {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none;
+  color: var(--green-dark);
+}
+.admin-top-link:hover { background: var(--green-tint); }
+.admin-top-link.logout { color: #962a2a; }
+.admin-top-link.logout:hover { background: #f9e4e4; }
+
 /* ---------- PAGE TRANSITION ---------- */
 .page-enter-active,
 .page-leave-active {
@@ -246,13 +330,13 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-/* ---------- FOOTER ---------- */
+/* ---------- FOOTER (public site only) ---------- */
 .footer {
   background: #0b2a25;
   color: #a0b0ac;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding: 2.5rem 1rem 3rem;
-  margin-top: 0;    /* was 4rem — this was creating the white band */
+  margin-top: 0;
 }
 .footer-inner {
   max-width: 1160px;
@@ -307,5 +391,6 @@ onUnmounted(() => {
   .brand-name { display: none; }
   .links a { padding: 7px 10px; font-size: 0.85rem; }
   .nav-btn { padding: 8px 14px; font-size: 0.8rem; }
+  .admin-wordmark small { display: none; }
 }
 </style>

@@ -17,6 +17,7 @@ import adminRoutes from './routes/admin.js'
 
 const app = express()
 
+app.set('trust proxy', 1) // so req.protocol/host are correct behind ngrok for PayFast URLs
 app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: false })) // PayFast ITN arrives as form data, not JSON

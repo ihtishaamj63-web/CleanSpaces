@@ -1,14 +1,14 @@
 import { Router } from 'express'
+import auth from '../middleware/auth.js'
 import { createPayment, paymentReturn, paymentNotify } from '../controllers/paymentController.js'
 
 const router = Router()
 
-// Auth middleware will be added once Krishendree's is merged:
-// import auth from '../middleware/auth.js'
-// router.use(auth)
+router.post('/create', auth, createPayment)
+router.get('/return/:id', auth, paymentReturn)
 
-router.post('/create', createPayment)
-router.get('/return/:id', paymentReturn)
+// PayFast's ITN webhook — no JWT (PayFast holds no token);
+// protected by the MD5 signature check inside paymentNotify.
 router.post('/notify', paymentNotify)
 
 export default router

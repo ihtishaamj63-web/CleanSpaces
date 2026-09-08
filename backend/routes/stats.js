@@ -1,7 +1,6 @@
+// routes/stats.js — full file
 import { Router } from 'express'
-
+import { getStats } from '../controllers/statsController.js'
 const router = Router()
-
-// Replace this stub with your real endpoints (see the dev plan for your list).
-
+router.get('/', getStats)
 export default router

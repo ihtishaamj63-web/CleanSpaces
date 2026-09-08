@@ -13,7 +13,7 @@
         <h3>You've Paid This Month</h3>
         <p class="soft">
           Your contribution to {{ paidZoneName }} has been received.<br />
-          Next payment due 1 October 2026.
+          Next payment due {{ nextDue }}.
         </p>
         <router-link to="/resident/dashboard" class="cta">
           Go to My Dashboard →
@@ -92,70 +92,14 @@
                 </label>
               </div>
 
-              <div v-if="method === 'card'" class="card-form">
-                <div class="field">
-                  <label for="cardname">Name on card</label>
-                  <input
-                    id="cardname"
-                    v-model="card.name"
-                    type="text"
-                    placeholder="T. Mbeki"
-                    autocomplete="cc-name"
-                  />
-                </div>
-                <div class="field">
-                  <label for="cardnumber">Card number</label>
-                  <input
-                    id="cardnumber"
-                    v-model="card.number"
-                    type="text"
-                    inputmode="numeric"
-                    placeholder="4242 4242 4242 4242"
-                    autocomplete="cc-number"
-                    maxlength="19"
-                    :class="{ invalid: cardErrors.number }"
-                    @input="formatCardNumber"
-                  />
-                  <p v-if="cardErrors.number" class="field-error">{{ cardErrors.number }}</p>
-                </div>
-                <div class="card-row">
-                  <div class="field">
-                    <label for="cardexp">Expiry (MM/YY)</label>
-                    <input
-                      id="cardexp"
-                      v-model="card.expiry"
-                      type="text"
-                      inputmode="numeric"
-                      placeholder="09/28"
-                      autocomplete="cc-exp"
-                      maxlength="5"
-                      :class="{ invalid: cardErrors.expiry }"
-                      @input="formatExpiry"
-                    />
-                    <p v-if="cardErrors.expiry" class="field-error">{{ cardErrors.expiry }}</p>
-                  </div>
-                  <div class="field">
-                    <label for="cardcvv">CVV</label>
-                    <input
-                      id="cardcvv"
-                      v-model="card.cvv"
-                      type="password"
-                      inputmode="numeric"
-                      placeholder="•••"
-                      autocomplete="cc-csc"
-                      maxlength="3"
-                      :class="{ invalid: cardErrors.cvv }"
-                    />
-                    <p v-if="cardErrors.cvv" class="field-error">{{ cardErrors.cvv }}</p>
-                  </div>
-                </div>
-                <p class="card-note">
-                  Card details are never stored on CleanSpaces — payment is completed
-                  on PayFast's PCI DSS Level 1 certified page.
+              <div v-if="method === 'card'" class="gateway-info">
+                <p>
+                  After clicking pay, you'll be redirected to PayFast's secure page to enter your
+                  card details. Card information never touches CleanSpaces' servers.
                 </p>
               </div>
 
-              <div v-if="method === 'eft'" class="eft-info">
+              <div v-if="method === 'eft'" class="gateway-info">
                 <p>
                   You'll be redirected to your bank's secure login to approve the payment.
                   Supported: FNB, Standard Bank, ABSA, Nedbank, Capitec.
@@ -228,7 +172,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api.js'
 
@@ -245,14 +189,12 @@ const method = ref('card')
 const loading = ref(false)
 const error = ref('')
 
-const card = reactive({ name: '', number: '', expiry: '', cvv: '' })
-const cardErrors = reactive({ number: '', expiry: '', cvv: '' })
-
 const payEl = ref(null)
 let pointerMove = null
 
+// Safety net if the zones endpoint is unreachable during development.
 const fallbackZones = [
-  { id: 1, name: 'NY108 Block', neighborhood: 'Manenberg', households: 62, plan_type: 'small', status: 'active' },
+  { id: 1, name: 'NY108 Block', neighborhood: 'Manenberg', households: 62, plan_type: 'small', status: 'active', per_household_amount: 65 },
 ]
 
 const planInfoMap = {
@@ -263,54 +205,16 @@ const planInfoMap = {
 
 const selectedZone = computed(() => zones.value.find(z => z.id === selectedZoneId.value) || null)
 const planInfo = computed(() => planInfoMap[selectedZone.value?.plan_type] || { label: '—', range: '—' })
-const perHousehold = computed(() => {
-  if (!selectedZone.value) return '—'
-  const base = { small: 4000, medium: 7250, large: 11500 }[selectedZone.value.plan_type] || 0
-  return Math.round(base / selectedZone.value.households)
+
+// Price comes from the backend (single source of truth: config/plans.js)
+const perHousehold = computed(() => selectedZone.value?.per_household_amount ?? '—')
+
+// First day of next month — when the next subscription payment is due.
+const nextDue = computed(() => {
+  const d = new Date()
+  d.setMonth(d.getMonth() + 1, 1)
+  return d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })
 })
-
-function formatCardNumber() {
-  const digits = card.number.replace(/\D/g, '').slice(0, 16)
-  card.number = digits.replace(/(.{4})/g, '$1 ').trim()
-}
-
-function formatExpiry() {
-  const digits = card.expiry.replace(/\D/g, '').slice(0, 4)
-  card.expiry = digits.length >= 3
-    ? digits.slice(0, 2) + '/' + digits.slice(2)
-    : digits
-}
-
-function validateCard() {
-  cardErrors.number = ''
-  cardErrors.expiry = ''
-  cardErrors.cvv = ''
-
-  const digits = card.number.replace(/\D/g, '')
-  if (digits.length !== 16) {
-    cardErrors.number = 'Enter a valid 16-digit card number'
-  }
-
-  const m = card.expiry.match(/^(\d{2})\/(\d{2})$/)
-  if (!m) {
-    cardErrors.expiry = 'Use MM/YY format'
-  } else {
-    const month = parseInt(m[1], 10)
-    const year = 2000 + parseInt(m[2], 10)
-    const now = new Date()
-    if (month < 1 || month > 12) {
-      cardErrors.expiry = 'Invalid month'
-    } else if (year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1)) {
-      cardErrors.expiry = 'Card has expired'
-    }
-  }
-
-  if (!/^\d{3}$/.test(card.cvv)) {
-    cardErrors.cvv = '3 digits'
-  }
-
-  return !cardErrors.number && !cardErrors.expiry && !cardErrors.cvv
-}
 
 /* CLEAN-REVEAL SPOTLIGHT */
 function onPointerMove(e) {
@@ -325,6 +229,7 @@ onMounted(async () => {
   pointerMove = (e) => onPointerMove(e)
   window.addEventListener('pointermove', pointerMove, { passive: true })
 
+  // Already paid this month? Skip straight to the confirmation state.
   try {
     const dash = await api.get('/resident/dashboard')
     if (dash.data.hasZone && dash.data.zone.myStatus === 'paid') {
@@ -340,8 +245,9 @@ onMounted(async () => {
     // Dashboard unreachable — allow the payment attempt
   }
 
+  // /zones is admin-only; the public map endpoint lists every zone.
   try {
-    const res = await api.get('/zones')
+    const res = await api.get('/zones/map')
     const active = (Array.isArray(res.data) ? res.data : []).filter(z => z.status === 'active')
     if (active.length === 0) throw new Error('no active zones')
     zones.value = active
@@ -349,6 +255,7 @@ onMounted(async () => {
     zones.value = fallbackZones
   }
 
+  // Preselect the resident's own zone if it's in the list
   const mine = zones.value.find(z => z.name === myZoneName.value)
   selectedZoneId.value = (mine || zones.value[0])?.id ?? null
   checking.value = false
@@ -359,10 +266,6 @@ onUnmounted(() => {
 })
 
 async function pay() {
-  if (method.value === 'card' && !validateCard()) {
-    error.value = 'Please check your card details.'
-    return
-  }
   error.value = ''
   loading.value = true
   try {
@@ -371,16 +274,19 @@ async function pay() {
       method: method.value
     })
     if (res.data.bypass) {
+      // DEV_BYPASS — payment completed instantly, no gateway involved
       router.push(`/payment/success/${res.data.payment.id}`)
     } else {
       submitToPayfast(res.data.url, res.data.params)
     }
-  } catch {
-    error.value = 'Could not start the payment. Is the backend running?'
+  } catch (e) {
+    error.value = e.response?.data?.message || 'Could not start the payment. Is the backend running?'
     loading.value = false
   }
 }
 
+// Build a hidden form and POST it to PayFast — card details are entered
+// on PayFast's own PCI-compliant page, never here.
 function submitToPayfast(url, params) {
   const form = document.createElement('form')
   form.method = 'POST'
@@ -581,13 +487,6 @@ function submitToPayfast(url, params) {
   box-shadow: 0 0 0 4px rgba(124, 179, 66, 0.15);
   outline: none;
 }
-.field input.invalid { border-color: #ff8a80; }
-.field-error {
-  margin: 0;
-  color: #ff8a80;
-  font-size: .78rem;
-  font-weight: 600;
-}
 .select option { background: #0e2420; color: #f4f6f5; }
 
 .zone-quick {
@@ -653,8 +552,8 @@ function submitToPayfast(url, params) {
   background: #2a4a43;
 }
 
-/* CARD FORM */
-.card-form {
+/* GATEWAY INFO (card + EFT notes) */
+.gateway-info {
   padding: 1.25rem;
   background: #0b2a25;
   border: 1px solid #2a4a43;
@@ -662,27 +561,7 @@ function submitToPayfast(url, params) {
   margin-bottom: 1.25rem;
   animation: sweepIn 0.3s ease both;
 }
-.card-form .field { margin-bottom: 1rem; }
-.card-form .field input { background: #0e2420; }
-.card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.card-row .field { margin-bottom: 0; }
-.card-note {
-  margin: 1rem 0 0;
-  font-size: .78rem;
-  color: #c3d0cb;
-  line-height: 1.5;
-}
-
-/* EFT INFO */
-.eft-info {
-  padding: 1.25rem;
-  background: #0b2a25;
-  border: 1px solid #2a4a43;
-  border-radius: 14px;
-  margin-bottom: 1.25rem;
-  animation: sweepIn 0.3s ease both;
-}
-.eft-info p { margin: 0; font-size: .88rem; color: #c3d0cb; line-height: 1.6; }
+.gateway-info p { margin: 0; font-size: .88rem; color: #c3d0cb; line-height: 1.6; }
 
 .error-text { margin: 0 0 1rem; color: #ff8a80; font-size: .9rem; font-weight: 600; }
 
@@ -840,13 +719,12 @@ function submitToPayfast(url, params) {
 @media (max-width: 600px) {
   .steps { gap: .5rem; }
   .connector { width: 24px; }
-  .card-row { grid-template-columns: 1fr; }
   .method-badges { display: none; }
   .panel { padding: 1.5rem 1.25rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .payment-layout, .panel, .card-form, .eft-info, .check {
+  .payment-layout, .panel, .gateway-info, .check {
     animation: none !important;
   }
   .panel::before { display: none; }
