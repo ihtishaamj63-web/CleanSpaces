@@ -391,9 +391,12 @@ const reportIssue = () => {
   margin: auto;
 }
 
+/* Section intro — the margin shorthand centers the 750px block:
+   top 0, sides auto, bottom 55px (was an invalid margin-bottom
+   declaration that browsers silently discarded). */
 .section-heading {
   max-width: 750px;
-  margin-bottom: 0 auto 55px;
+  margin: 0 auto 55px;
   text-align: center;
 }
 

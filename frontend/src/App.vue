@@ -1,5 +1,5 @@
 <template>
-  <!-- PUBLIC SITE CHROME — hidden on /admin routes, which get their own topbar -->
+  <!-- PUBLIC SITE CHROME — hidden on /admin routes, which get their own glass nav -->
   <div v-if="!isAdmin" class="nav-shell">
     <header class="nav" :class="{ scrolled }">
       <router-link to="/" class="brand">
@@ -32,21 +32,24 @@
     </header>
   </div>
 
-  <!-- ADMIN TOPBAR — replaces the marketing nav on admin routes so the
-       admin panel doesn't stack two navbars. Keeps brand, a way back to
-       the public site, and the logout button. -->
-  <header v-else class="admin-topbar">
-    <router-link to="/admin/dashboard" class="admin-brand">
-      <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="CleanSpaces" class="admin-logo" />
-      <span class="admin-wordmark">CLEAN<em>SPACES</em><small>Admin</small></span>
-    </router-link>
-    <div class="admin-topbar-actions">
-      <router-link to="/" class="admin-top-link">View site</router-link>
-      <a href="#" class="admin-top-link logout" @click.prevent="logout">Log Out</a>
+  <!-- ADMIN NAV — same glass pill as the public site, admin content -->
+  <header v-else class="nav-shell">
+    <div class="nav" :class="{ scrolled }">
+      <router-link to="/admin/dashboard" class="brand">
+        <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="CleanSpaces" class="logo" />
+        <span class="brand-name">CLEAN<em>SPACES</em><small class="admin-badge">Admin</small></span>
+      </router-link>
+
+      <div class="actions">
+        <router-link to="/" class="nav-btn ghost">View Site</router-link>
+        <a href="#" class="nav-btn ghost" @click.prevent="logout">Log Out</a>
+      </div>
     </div>
   </header>
 
-  <main>
+  <!-- Admin routes get a light page background so the white cards
+       sit on the same near-white surface as the rest of the site. -->
+  <main :class="{ 'admin-main': isAdmin }">
     <router-view v-slot="{ Component }">
       <transition name="page" mode="out-in">
         <component :is="Component" />
@@ -80,7 +83,7 @@ const token = ref(localStorage.getItem('token'))
 const role = ref(localStorage.getItem('role'))
 const scrolled = ref(false)
 
-// Admin routes get their own chrome (topbar + no marketing footer)
+// Admin routes get their own nav content + light background, no footer
 const isAdmin = computed(() => route.path.startsWith('/admin'))
 
 // Keeps the nav in sync with login/logout happening anywhere
@@ -117,7 +120,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* ---------- FLOATING GLASS NAV (public site) ---------- */
+/* ---------- FLOATING GLASS NAV (shared by public + admin) ---------- */
 .nav-shell {
   position: sticky;
   top: 0;
@@ -178,6 +181,20 @@ onUnmounted(() => {
 .brand-name em {
   font-style: normal;
   color: #7cb342;
+}
+
+/* "Admin" tag next to the wordmark on admin routes */
+.admin-badge {
+  margin-left: 0.6rem;
+  padding: 0.18rem 0.6rem;
+  border-radius: 99px;
+  background: rgba(124, 179, 66, 0.18);
+  color: #9ccc65;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  vertical-align: middle;
 }
 
 .links {
@@ -253,73 +270,6 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.06);
 }
 
-/* ---------- ADMIN TOPBAR (replaces the marketing nav on /admin) ----------
-   Light theme to match the admin pages below it. */
-.admin-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.7rem 1.5rem;
-  background: #ffffff;
-  border-bottom: 1px solid var(--border);
-}
-.admin-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-}
-.admin-logo {
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
-  background: var(--green-tint);
-  padding: 4px;
-  border-radius: 8px;
-}
-.admin-wordmark {
-  font-family: 'Sora', sans-serif;
-  font-weight: 800;
-  font-size: 1rem;
-  color: var(--green-dark);
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
-.admin-wordmark em {
-  font-style: normal;
-  color: var(--green);
-}
-.admin-wordmark small {
-  margin-left: 0.6rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 99px;
-  background: var(--green-tint);
-  color: var(--green-deep);
-  font-size: 0.65rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.admin-topbar-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 0.5rem;
-}
-.admin-top-link {
-  padding: 0.45rem 0.9rem;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 0.85rem;
-  text-decoration: none;
-  color: var(--green-dark);
-}
-.admin-top-link:hover { background: var(--green-tint); }
-.admin-top-link.logout { color: #962a2a; }
-.admin-top-link.logout:hover { background: #f9e4e4; }
-
 /* ---------- PAGE TRANSITION ---------- */
 .page-enter-active,
 .page-leave-active {
@@ -328,6 +278,14 @@ onUnmounted(() => {
 .page-enter-from,
 .page-leave-to {
   opacity: 0;
+}
+
+/* ---------- ADMIN PAGE BACKGROUND ----------
+   Near-white (the design system's --bg) so white cards still read
+   as cards — pure white would flatten them into the page. */
+.admin-main {
+  background: var(--bg);
+  min-height: 100vh;
 }
 
 /* ---------- FOOTER (public site only) ---------- */
@@ -391,6 +349,5 @@ onUnmounted(() => {
   .brand-name { display: none; }
   .links a { padding: 7px 10px; font-size: 0.85rem; }
   .nav-btn { padding: 8px 14px; font-size: 0.8rem; }
-  .admin-wordmark small { display: none; }
 }
 </style>

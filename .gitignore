@@ -4,3 +4,4 @@ backend/.env
 frontend/.env.local
 frontend/dist/
 .env.local
+uploads/

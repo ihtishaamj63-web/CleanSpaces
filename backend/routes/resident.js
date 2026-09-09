@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import auth from '../middleware/auth.js'
+import upload from '../middleware/upload.js'
 import { createCleanupRequest, listMyCleanupRequests } from '../controllers/residentController.js'
 import { PLAN_BASE } from '../config/plans.js'
 import db from '../db.js'
@@ -9,9 +10,9 @@ const router = Router()
 // Every /api/resident/* endpoint requires a valid JWT.
 router.use(auth)
 
-// GET /api/resident/dashboard — "paid" counts are scoped to the current
-// calendar month because the subscription is monthly; a lifetime flag
-// would never reset.
+// GET /api/resident/dashboard — the signed-in resident's zone snapshot.
+// "Paid" counts are scoped to the current calendar month because the
+// subscription is monthly; a lifetime flag would never reset.
 router.get('/dashboard', async (req, res) => {
   try {
     const userId = req.user.id
@@ -40,7 +41,7 @@ router.get('/dashboard', async (req, res) => {
         neighborhood: zone.neighborhood,
         plan: zone.plan_type,
         households: zone.households,
-        paid: paid[0].c,                 // households paid THIS month
+        paid: paid[0].c,                    // households paid THIS month
         threshold: Math.ceil(zone.households * 0.6),
         per_household_amount: Math.round(PLAN_BASE[zone.plan_type] / zone.households),
         myStatus: mine[0].c > 0 ? 'paid' : 'pending'   // this month, not lifetime
@@ -51,6 +52,7 @@ router.get('/dashboard', async (req, res) => {
   }
 })
 
+// GET /api/resident/payments — this resident's payment history
 router.get('/payments', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM payments WHERE user_id = ? ORDER BY created_at DESC', [req.user.id])
@@ -60,6 +62,7 @@ router.get('/payments', async (req, res) => {
   }
 })
 
+// GET /api/resident/cleanups — before/after reports for this resident's zone
 router.get('/cleanups', async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -72,7 +75,23 @@ router.get('/cleanups', async (req, res) => {
   }
 })
 
-router.post('/cleanup-requests', createCleanupRequest)
+// GET /api/resident/crew — the active crew assigned to this resident's zone
+router.get('/crew', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT e.name, e.role FROM employees e
+        JOIN zone_members zm ON zm.zone_id = e.zone_id
+       WHERE zm.user_id = ? AND e.status = 'active'
+       ORDER BY e.role, e.name`, [req.user.id])
+    res.json(rows)
+  } catch {
+    res.status(500).json({ error: 'Server error' })
+  }
+})
+
+// POST — multipart/form-data: text fields + optional photo ('photo' field).
+// multer parses the body and leaves the file on req.file.
+router.post('/cleanup-requests', upload.single('photo'), createCleanupRequest)
 router.get('/cleanup-requests', listMyCleanupRequests)
 
 export default router
