@@ -1,6 +1,5 @@
 <template>
   <div class="auth-page">
-    <div class="glow"></div>
     <div class="auth-card">
       <div class="logo-section">
         <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="CleanSpaces Logo" class="logo" />
@@ -128,126 +127,98 @@ onMounted(async () => {
   min-height: 100vh;
   display: grid; place-items: center;
   padding: 2rem 1rem;
-  position: relative;
-  overflow: hidden;
-}
-.glow {
-  position: absolute;
-  width: 500px; height: 500px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(124, 179, 66, 0.18) 0%, transparent 70%);
-  top: -150px; left: 50%;
-  transform: translateX(-50%);
-  pointer-events: none;
+  background: #f7faf8;
 }
 .auth-card {
   width: min(100%, 460px);
   padding: 2.75rem;
-  background: linear-gradient(165deg, #12332d 0%, #0b2a25 100%);
-  color: #f4f6f5;
+  background: #ffffff;
+  color: #183b28;
+  border: 1px solid #e4eee7;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-left: 3px solid #7cb342;
-  box-shadow: 0 25px 60px rgba(11, 42, 37, 0.45);
+  border-left: 3px solid #198044;
+  box-shadow: 0 25px 60px rgba(31, 89, 54, 0.12);
   text-align: center;
-  position: relative;
-  animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .logo-section { margin-bottom: 1.75rem; }
 .logo {
   width: 84px; height: 84px; object-fit: contain;
-  margin-bottom: .6rem;
+  margin-bottom: 0.6rem;
   background: white; padding: 6px; border-radius: 50%;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
 }
 .brand-title {
-  margin: 0 0 .3rem; font-size: 1.8rem; font-weight: 800;
-  text-transform: uppercase; letter-spacing: .02em; color: #f4f6f5;
+  margin: 0 0 0.3rem; font-size: 1.8rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.02em; color: #173b27;
 }
-.brand-title span { color: #9ccc65; }
-.tagline { margin: 0; color: #a0b0ac; font-size: .9rem; }
+.brand-title span { color: #198044; }
+.tagline { margin: 0; color: #8a978f; font-size: 0.9rem; }
 
 .check {
   width: 72px; height: 72px; line-height: 72px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7cb342, #689f38);
-  color: #0b2a25; font-size: 36px; font-weight: 800;
+  background: #176b3a;
+  color: #ffffff; font-size: 36px; font-weight: 800;
   margin: 0 auto 1.1rem;
-  box-shadow: 0 8px 24px rgba(124, 179, 66, 0.45);
-  animation: pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+  box-shadow: 0 8px 24px rgba(23, 107, 58, 0.25);
 }
-.check.failed {
-  background: linear-gradient(135deg, #ff8a80, #c62828);
-  color: #ffffff;
-}
-.confirm-title { margin: 0 0 .4rem; font-size: 1.45rem; color: #f4f6f5; }
-.confirm-text { margin: 0 0 1.5rem; color: #a0b0ac; font-size: .95rem; }
+.check.failed { background: #c62828; color: #ffffff; }
+.confirm-title { margin: 0 0 0.4rem; font-size: 1.45rem; color: #173b27; }
+.confirm-text { margin: 0 0 1.5rem; color: #718077; font-size: 0.95rem; }
 
 .details { text-align: left; margin: 0 0 1.25rem; }
 .details .row {
   display: flex; justify-content: space-between;
-  padding: .8rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  opacity: 0;
-  animation: fadeUp 0.4s ease-out forwards;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid #e6eee8;
 }
-.details .row:nth-child(1) { animation-delay: 0.4s; }
-.details .row:nth-child(2) { animation-delay: 0.6s; }
-.details .row:nth-child(3) { animation-delay: 0.8s; }
-.details .row span:first-child { color: #a0b0ac; }
-.details .row span:last-child { font-weight: 700; }
+.details .row span:first-child { color: #8a978f; }
+.details .row span:last-child { font-weight: 700; color: #173b27; }
 
 .next-steps {
   padding: 1.1rem 1.25rem;
-  background: rgba(124, 179, 66, 0.08);
-  border: 1px solid rgba(124, 179, 66, 0.25);
+  background: #e9f7ed;
+  border: 1px solid #bfe3cc;
   border-radius: 12px;
   margin: 0 0 1.5rem;
-  opacity: 0;
-  animation: fadeUp 0.4s ease-out 1s forwards;
   text-align: left;
 }
 .next-bar {
   height: 6px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
+  background: #e6eee8;
   overflow: hidden;
-  margin-bottom: .6rem;
+  margin-bottom: 0.6rem;
 }
 .next-fill {
   height: 100%; border-radius: 999px;
-  background: linear-gradient(90deg, #7cb342, #9ccc65);
-  box-shadow: 0 0 10px rgba(124, 179, 66, 0.5);
-  transition: width 1s cubic-bezier(0.22, 1, 0.36, 1) 1.2s;
+  background: linear-gradient(90deg, #198044, #3b9b68);
+  transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.next-text { margin: 0; font-size: .88rem; color: #d7e4de; }
+.next-text { margin: 0; font-size: 0.88rem; color: #24633a; }
 
 .submit-btn {
   display: block; width: 100%; padding: 1rem;
-  color: #0b2a25;
-  background: linear-gradient(135deg, #7cb342 0%, #689f38 100%);
+  color: #ffffff;
+  background: #176b3a;
   border: 0; border-radius: 10px;
   font-weight: 800; font-size: 1rem;
-  font-family: 'Sora', sans-serif;
   cursor: pointer; text-decoration: none;
-  box-shadow: 0 6px 18px rgba(124, 179, 66, 0.4);
+  box-shadow: 0 6px 18px rgba(23, 107, 58, 0.2);
   transition: all 0.25s ease;
   margin-top: 1rem;
 }
-.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(124, 179, 66, 0.55); }
+.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(23, 107, 58, 0.28); }
 
 .loading-state { padding: 2rem 0; }
 .spinner {
   width: 42px; height: 42px; margin: 0 auto 1rem;
-  border: 4px solid rgba(255, 255, 255, 0.15);
-  border-top-color: #7cb342;
+  border: 4px solid #dcebe0;
+  border-top-color: #198044;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
-.loading-text { color: #a0b0ac; }
+.loading-text { color: #718077; }
 
-@keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@keyframes cardIn { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: none; } }
 </style>

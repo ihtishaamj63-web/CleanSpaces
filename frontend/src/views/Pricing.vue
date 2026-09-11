@@ -1,14 +1,11 @@
 <template>
   <div class="pricing-page">
-    <div class="glow glow-a"></div>
-    <div class="glow glow-b"></div>
-
     <header class="hero">
       <p class="eyebrow">Pricing</p>
       <h1>One street. One price.<br />Split across your block.</h1>
       <p class="hero-sub">
-        Zones are funded collectively — the monthly total is shared,
-        so each household pays a fraction of what private cleanup would cost.
+        Zones are funded collectively — each household's share is set so the zone
+        is fully funded once 60% of households are contributing.
       </p>
     </header>
 
@@ -29,7 +26,7 @@
             <span class="plan-period">zone total / month</span>
           </div>
           <div class="plan-share">
-            <span class="share-amount">±R{{ plan.share }}</span>
+            <span class="share-amount">{{ plan.share }}</span>
             <span class="share-label">per household, monthly</span>
           </div>
 
@@ -54,21 +51,21 @@
             <span class="explain-num">01</span>
             <div>
               <h3>Your zone picks a plan</h3>
-              <p>A single street (Small) up to a full block (Large) — sized to what your community needs.</p>
+              <p>A single street (Small) up to a neighbourhood section (Large) — sized to what your community needs. Households include backyard dwellings and flats, so streets hold more contributors than they look.</p>
             </div>
           </div>
           <div class="explain-row">
             <span class="explain-num">02</span>
             <div>
               <h3>The total is split</h3>
-              <p>R3,500 across 62 households is about R56 each. Nobody carries it alone.</p>
+              <p>Each household's share is set so the zone is fully funded at 60% — roughly R105 each on a 65-household street. Nobody carries it alone.</p>
             </div>
           </div>
           <div class="explain-row">
             <span class="explain-num">03</span>
             <div>
               <h3>60% unlocks weekly cleanups</h3>
-              <p>Once six in ten households are contributing, the crew schedule starts. You watch it happen live on your dashboard.</p>
+              <p>Once six in ten households are contributing, the zone is fully funded and the crew schedule starts. You watch it happen live on your dashboard.</p>
             </div>
           </div>
         </div>
@@ -90,12 +87,14 @@
 </template>
 
 <script setup>
+// Share ranges use threshold pricing (plan total ÷ 60% of households),
+// consistent with the backend's config/plans.js and the proposal document.
 const plans = [
   {
     name: 'Small Zone',
     fit: 'Single street · 50–80 households',
     range: 'R3,500 – R4,500',
-    share: 56,
+    share: '±R85 – R130',
     includes: [
       'Weekly scheduled cleanup',
       'Hazardous waste disposal',
@@ -107,9 +106,9 @@ const plans = [
   },
   {
     name: 'Medium Zone',
-    fit: '2–3 blocks · 150–200 households',
+    fit: '2–3 streets · 150–200 households',
     range: 'R6,500 – R8,000',
-    share: 40,
+    share: '±R60 – R80',
     includes: [
       'Weekly scheduled cleanup',
       'Hazardous waste disposal',
@@ -122,9 +121,9 @@ const plans = [
   },
   {
     name: 'Large Zone',
-    fit: 'Full block · 300+ households',
+    fit: 'Neighbourhood section · 300+ households',
     range: 'R10,000 – R13,000',
-    share: 38,
+    share: 'from R64',
     includes: [
       'Weekly scheduled cleanup',
       'Hazardous waste disposal',
@@ -141,11 +140,11 @@ const plans = [
 const faqs = [
   {
     q: 'Why is it so cheap per household?',
-    a: 'Because the zone total is split across every contributing household. A private cleanup contractor charges R500+ per household — pooling brings your share down to a fraction of that.'
+    a: 'Because the zone total is split across the households needed to reach the 60% activation threshold — and Cape Flats streets hold more households than they look, once backyard dwellings and flats are counted. A private cleanup contractor charges R500+ per household; pooling brings your share down to a fraction of that.'
   },
   {
     q: 'What happens before the zone reaches 60%?',
-    a: 'No money is spent and no cleanup is scheduled until your zone hits the 60% activation threshold. You can watch the progress live on your dashboard.'
+    a: 'No money is spent and no cleanup is scheduled until your zone hits the 60% activation threshold. You can watch the progress live on your dashboard — and at 60%, your zone is fully funded for the month.'
   },
   {
     q: 'What payment methods do you accept?',
@@ -160,112 +159,125 @@ const faqs = [
 
 <style scoped>
 .pricing-page {
-  position: relative;
   min-height: 100vh;
-  background: #0b2a25;
-  color: #f4f6f5;
-  isolation: isolate;
+  background: #f7faf8;
+  color: #183b28;
 }
 
-.glow {
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(90px);
-  pointer-events: none;
-  z-index: -1;
-}
-.glow-a {
-  width: 640px; height: 640px;
-  top: -220px; right: -140px;
-  background: rgba(124, 179, 66, 0.10);
-}
-.glow-b {
-  width: 520px; height: 520px;
-  bottom: -160px; left: -180px;
-  background: rgba(42, 74, 67, 0.55);
-}
-
+/* HERO — the same gradient band as the other public pages */
 .hero {
   position: relative;
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 5rem 1.5rem 3rem;
   text-align: center;
+  padding: 90px 8% 70px;
+  background: linear-gradient(135deg, #eaf6ed 0%, #f7fbf8 55%, #dff0e5 100%);
+  overflow: hidden;
 }
+
+/* decorative circles, matching the About/Reviews heroes */
+.hero::before {
+  content: "";
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: rgba(76, 175, 112, 0.08);
+  right: -80px;
+  top: -80px;
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  border: 2px solid rgba(76, 175, 112, 0.15);
+  right: 12%;
+  bottom: -60px;
+}
+
 .eyebrow {
-  margin: 0 0 .7rem;
-  font-family: 'Sora', sans-serif;
-  font-size: .78rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .22em;
-  color: #9ccc65;
-}
-.hero h1 {
-  margin: 0;
-  font-family: 'Sora', sans-serif;
-  font-size: clamp(2.4rem, 5.5vw, 3.8rem);
+  position: relative;
+  margin: 0 0 16px;
+  color: #198044;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.06;
-  color: #ffffff;
-  text-shadow: 0 2px 30px rgba(11, 42, 37, 0.8);
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
+
+.hero h1 {
+  position: relative;
+  margin: 0;
+  font-size: clamp(40px, 6vw, 64px);
+  line-height: 1.05;
+  letter-spacing: -3px;
+  font-weight: 800;
+  color: #173b27;
+}
+
 .hero-sub {
-  margin: 1.2rem auto 0;
-  color: #c3d0cb;
-  font-size: 1.08rem;
+  position: relative;
+  margin: 22px auto 0;
+  color: #5e7165;
+  font-size: 17px;
+  line-height: 1.7;
   max-width: 56ch;
 }
 
 .rail {
   position: relative;
-  max-width: 1100px;
+  max-width: 1150px;
   margin: 0 auto;
-  padding: 0 1.5rem 6rem;
+  padding: 70px 20px 90px;
   display: grid;
-  gap: 3.25rem;
+  gap: 70px;
 }
 .block { animation: rise .65s cubic-bezier(.22, 1, .36, 1) both; }
 .block:nth-child(2) { animation-delay: .08s; }
 .block:nth-child(3) { animation-delay: .16s; }
 
 .block-title {
-  margin: 0 0 1.5rem;
-  font-family: 'Sora', sans-serif;
-  font-size: .92rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .16em;
-  color: #9ccc65;
+  margin: 0 0 32px;
+  color: #198044;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
-.rule { border: 0; border-top: 1px solid #1d3b35; margin: 0; }
+.rule { border: 0; border-top: 1px solid #e6eee8; margin: 0; }
 
+/* PLAN CARDS — white cards on the light background */
 .plans {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
+  gap: 24px;
   animation: rise .65s cubic-bezier(.22, 1, .36, 1) both;
 }
 
 .plan {
   position: relative;
   padding: 2rem 1.75rem 2.25rem;
-  border-radius: 20px;
-  background: rgba(18, 51, 45, 0.55);
-  border: 1px solid #2a4a43;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid #e4eee7;
+  box-shadow: 0 8px 22px rgba(31, 89, 54, 0.05);
   display: flex;
   flex-direction: column;
   transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease;
 }
 .plan:hover {
   transform: translateY(-5px);
-  border-color: #7cb342;
+  border-color: #62b987;
+  box-shadow: 0 18px 40px rgba(31, 89, 54, 0.12);
 }
 .plan.featured {
-  background: linear-gradient(170deg, rgba(124, 179, 66, 0.15), rgba(11, 42, 37, 0.75));
-  border-color: rgba(124, 179, 66, 0.5);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(170deg, #e9f7ed 0%, #ffffff 65%);
+  border-color: #bfe3cc;
+  box-shadow: 0 20px 50px rgba(31, 89, 54, 0.12);
 }
 .plan.featured:hover {
-  box-shadow: 0 24px 60px rgba(124, 179, 66, 0.2);
+  box-shadow: 0 24px 60px rgba(31, 89, 54, 0.16);
 }
 
 .plan-flag {
@@ -275,40 +287,38 @@ const faqs = [
   margin: 0;
   padding: .28rem 1rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, #7cb342, #689f38);
-  color: #0b2a25;
-  font-family: 'Sora', sans-serif;
-  font-size: .72rem; font-weight: 700;
+  background: #176b3a;
+  color: #ffffff;
+  font-size: .72rem;
+  font-weight: 800;
   letter-spacing: .06em;
   white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(124, 179, 66, 0.4);
+  box-shadow: 0 4px 14px rgba(23, 107, 58, 0.3);
 }
 
 .plan-name {
   margin: 0;
-  font-family: 'Sora', sans-serif;
   font-size: 1.5rem;
   font-weight: 800;
-  color: #ffffff;
+  color: #173b27;
 }
 .plan-fit {
   margin: .5rem 0 0;
-  color: #c3d0cb;
+  color: #718077;
   font-size: .88rem;
 }
 
 .plan-price { margin: 2rem 0 0; }
 .plan-total {
   display: block;
-  font-family: 'Sora', sans-serif;
   font-size: 2.2rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: #173b27;
 }
 .plan-period {
   display: block;
-  color: #c3d0cb;
+  color: #8a978f;
   font-size: .82rem;
   margin-top: .2rem;
 }
@@ -317,25 +327,24 @@ const faqs = [
   margin: 1.25rem 0 0;
   padding: .9rem 1.1rem;
   border-radius: 12px;
-  background: rgba(124, 179, 66, 0.12);
-  border: 1px solid rgba(124, 179, 66, 0.3);
+  background: #e9f7ed;
+  border: 1px solid #bfe3cc;
 }
 .share-amount {
-  font-family: 'Sora', sans-serif;
   font-size: 1.5rem;
   font-weight: 800;
-  color: #aed581;
+  color: #176b3a;
 }
 .share-label {
   display: block;
-  color: #c3d0cb;
+  color: #66736b;
   font-size: .78rem;
   margin-top: .15rem;
 }
 
 .plan-rule {
   border: 0;
-  border-top: 1px solid #2a4a43;
+  border-top: 1px solid #e6eee8;
   margin: 1.5rem 0;
 }
 
@@ -349,7 +358,7 @@ const faqs = [
 }
 .plan-includes li {
   font-size: .92rem;
-  color: #d7e4de;
+  color: #294635;
   padding-left: 1.5rem;
   position: relative;
 }
@@ -357,7 +366,7 @@ const faqs = [
   content: '✓';
   position: absolute;
   left: 0;
-  color: #aed581;
+  color: #198044;
   font-weight: 800;
 }
 
@@ -367,30 +376,31 @@ const faqs = [
   padding: .95rem 0;
   border-radius: 999px;
   text-align: center;
-  font-family: 'Sora', sans-serif;
   font-weight: 700;
   font-size: .98rem;
   text-decoration: none;
   transition: all .25s ease;
 }
 .plan.featured .plan-cta {
-  background: linear-gradient(135deg, #7cb342, #689f38);
-  color: #0b2a25;
-  box-shadow: 0 6px 26px rgba(124, 179, 66, 0.4);
+  background: #176b3a;
+  color: #ffffff;
+  box-shadow: 0 6px 26px rgba(23, 107, 58, 0.25);
 }
 .plan.featured .plan-cta:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 32px rgba(124, 179, 66, 0.55);
+  background: #1e6040;
+  box-shadow: 0 10px 32px rgba(23, 107, 58, 0.3);
 }
 .plan:not(.featured) .plan-cta {
-  border: 1.5px solid #2a4a43;
-  color: #d7e4de;
+  border: 2px solid #bfe3cc;
+  color: #176b3a;
 }
 .plan:not(.featured) .plan-cta:hover {
-  border-color: #9ccc65;
-  color: #aed581;
+  border-color: #198044;
+  background: rgba(25, 128, 68, 0.06);
 }
 
+/* HOW THE PRICE WORKS */
 .explain { display: grid; gap: 2.25rem; }
 .explain-row {
   display: flex;
@@ -398,44 +408,46 @@ const faqs = [
   align-items: flex-start;
 }
 .explain-num {
-  font-family: 'Sora', sans-serif;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   font-weight: 800;
-  color: #2a4a43;
-  -webkit-text-stroke: 1px #7cb342;
+  color: #d5ecdd;
+  -webkit-text-stroke: 1px #62b987;
   letter-spacing: -0.02em;
   flex-shrink: 0;
   line-height: 1.3;
 }
 .explain-row h3 {
   margin: 0 0 .3rem;
-  font-family: 'Sora', sans-serif;
   font-size: 1.15rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #173b27;
 }
 .explain-row p {
   margin: 0;
-  color: #c3d0cb;
+  color: #66736b;
   font-size: .98rem;
   max-width: 64ch;
+  line-height: 1.7;
 }
 
+/* FAQ — white cards */
 .faq { display: grid; gap: .75rem; }
 .faq details {
-  border: 1px solid #2a4a43;
+  border: 1px solid #e0e8e2;
   border-radius: 14px;
   padding: 1.1rem 1.4rem;
-  transition: border-color .25s ease;
-  background: rgba(18, 51, 45, 0.35);
+  transition: border-color .25s ease, box-shadow .25s ease;
+  background: #ffffff;
 }
-.faq details[open] { border-color: rgba(124, 179, 66, 0.4); }
+.faq details[open] {
+  border-color: #62b987;
+  box-shadow: 0 12px 30px rgba(37, 91, 60, 0.08);
+}
 .faq summary {
   cursor: pointer;
-  font-family: 'Sora', sans-serif;
   font-weight: 700;
   font-size: 1rem;
-  color: #ffffff;
+  color: #173b27;
   list-style: none;
   position: relative;
   padding-right: 2rem;
@@ -445,7 +457,7 @@ const faqs = [
   content: '+';
   position: absolute;
   right: 0;
-  color: #aed581;
+  color: #198044;
   font-weight: 800;
   font-size: 1.2rem;
   transition: transform .25s ease;
@@ -453,9 +465,9 @@ const faqs = [
 .faq details[open] summary::after { transform: rotate(45deg); }
 .faq details p {
   margin: .8rem 0 0;
-  color: #c3d0cb;
+  color: #66736b;
   font-size: .95rem;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 @keyframes rise {
@@ -464,8 +476,8 @@ const faqs = [
 }
 
 @media (max-width: 640px) {
-  .hero { padding-top: 3.5rem; }
-  .rail { gap: 2.5rem; }
+  .hero { padding: 70px 7% 55px; }
+  .rail { gap: 50px; padding-top: 55px; }
   .explain-row { flex-direction: column; gap: .5rem; }
 }
 </style>

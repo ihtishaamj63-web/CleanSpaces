@@ -1,5 +1,5 @@
 import pool from '../db.js'
-import { PLAN_BASE } from '../config/plans.js'
+import { perHouseholdAmount } from '../config/plans.js'
 
 const plans = new Set(['small', 'medium', 'large'])
 
@@ -11,7 +11,7 @@ export async function registerZone(req, res) {
   }
 
   try {
-    // contact details are now stored (previously collected then discarded)
+    // contact details are stored so the admin can reach the committee
     const [result] = await pool.execute(
       "INSERT INTO zones (name, neighborhood, households, plan_type, contact_name, contact_phone, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')",
       [name.trim(), neighborhood.trim(), householdCount, plan_type, contact_name.trim(), contact_phone.trim()]
@@ -45,9 +45,9 @@ export async function zoneMap(req, res) {
         END AS cleanup_status
       FROM zones z ORDER BY z.name
     `)
-    // per-household price so the payment page displays it without hardcoding
-    // (single source of truth: config/plans.js)
-    for (const z of zones) z.per_household_amount = Math.round(PLAN_BASE[z.plan_type] / z.households)
+    // Per-household share from the single pricing source (config/plans.js) —
+    // set so the zone is fully funded at the 60% activation threshold.
+    for (const z of zones) z.per_household_amount = perHouseholdAmount(z.plan_type, z.households)
     return res.json(zones)
   } catch {
     return res.status(500).json({ message: 'Unable to load map areas.' })

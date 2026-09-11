@@ -1,5 +1,5 @@
 <template>
-  <div class="payment-page" ref="payEl">
+  <div class="payment-page">
     <section v-if="checking" class="wrap">
       <div class="panel state-panel">
         <div class="spinner"></div>
@@ -140,7 +140,7 @@
               <div class="activation-fill"></div>
             </div>
             <p class="panel-activation">
-              Once 60% of households have paid, weekly cleanups begin.
+              Once 60% of households have paid, weekly cleanups begin — and at that point your zone is fully funded.
             </p>
 
             <div class="panel-divider"></div>
@@ -172,7 +172,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api.js'
 
@@ -191,7 +191,7 @@ const error = ref('')
 
 // Safety net if the zones endpoint is unreachable during development.
 const fallbackZones = [
-  { id: 1, name: 'NY108 Block', neighborhood: 'Manenberg', households: 62, plan_type: 'small', status: 'active', per_household_amount: 65 },
+  { id: 1, name: 'NY108 Block', neighborhood: 'Manenberg', households: 62, plan_type: 'small', status: 'active', per_household_amount: 108 },
 ]
 
 const planInfoMap = {
