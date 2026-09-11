@@ -2,7 +2,7 @@ import { Router } from 'express'
 import auth from '../middleware/auth.js'
 import upload from '../middleware/upload.js'
 import { createCleanupRequest, listMyCleanupRequests } from '../controllers/residentController.js'
-import { PLAN_BASE } from '../config/plans.js'
+import { perHouseholdAmount } from '../config/plans.js'
 import db from '../db.js'
 
 const router = Router()
@@ -43,7 +43,7 @@ router.get('/dashboard', async (req, res) => {
         households: zone.households,
         paid: paid[0].c,                    // households paid THIS month
         threshold: Math.ceil(zone.households * 0.6),
-        per_household_amount: Math.round(PLAN_BASE[zone.plan_type] / zone.households),
+        per_household_amount: perHouseholdAmount(zone.plan_type, zone.households),
         myStatus: mine[0].c > 0 ? 'paid' : 'pending'   // this month, not lifetime
       }
     })
