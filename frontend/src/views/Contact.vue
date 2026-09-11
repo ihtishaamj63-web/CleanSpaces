@@ -189,7 +189,9 @@
               <div class="faq-item" :class="{ active: activeFaq === 0 }">
                 <button class="faq-question" @click="toggleFaq(0)">
                   <span>How do I report a waste issue?</span>
-                  <span class="faq-icon">{{ activeFaq === 0 ? "−" : "+" }}</span>
+                  <span class="faq-icon">{{
+                    activeFaq === 0 ? "−" : "+"
+                  }}</span>
                 </button>
                 <div v-if="activeFaq === 0" class="faq-answer">
                   <p>
@@ -204,7 +206,9 @@
               <div class="faq-item" :class="{ active: activeFaq === 1 }">
                 <button class="faq-question" @click="toggleFaq(1)">
                   <span>How can I get involved with CleanSpaces?</span>
-                  <span class="faq-icon">{{ activeFaq === 1 ? "−" : "+" }}</span>
+                  <span class="faq-icon">{{
+                    activeFaq === 1 ? "−" : "+"
+                  }}</span>
                 </button>
                 <div v-if="activeFaq === 1" class="faq-answer">
                   <p>
@@ -218,7 +222,9 @@
               <div class="faq-item" :class="{ active: activeFaq === 2 }">
                 <button class="faq-question" @click="toggleFaq(2)">
                   <span>What happens after I report a waste issue?</span>
-                  <span class="faq-icon">{{ activeFaq === 2 ? "−" : "+" }}</span>
+                  <span class="faq-icon">{{
+                    activeFaq === 2 ? "−" : "+"
+                  }}</span>
                 </button>
                 <div v-if="activeFaq === 2" class="faq-answer">
                   <p>
@@ -232,7 +238,9 @@
               <div class="faq-item" :class="{ active: activeFaq === 3 }">
                 <button class="faq-question" @click="toggleFaq(3)">
                   <span>Can I contact CleanSpaces directly?</span>
-                  <span class="faq-icon">{{ activeFaq === 3 ? "−" : "+" }}</span>
+                  <span class="faq-icon">{{
+                    activeFaq === 3 ? "−" : "+"
+                  }}</span>
                 </button>
                 <div v-if="activeFaq === 3" class="faq-answer">
                   <p>
@@ -313,7 +321,7 @@ const submitForm = async () => {
 };
 
 const reportIssue = () => {
-  window.location.href = "/report-issue";
+  window.location.href = "/reviews";
 };
 </script>
 
@@ -344,8 +352,16 @@ const reportIssue = () => {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.12), transparent 35%),
-    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.08), transparent 35%);
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(255, 255, 255, 0.12),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at 80% 80%,
+      rgba(255, 255, 255, 0.08),
+      transparent 35%
+    );
 }
 
 .hero-content {
@@ -451,7 +467,10 @@ const reportIssue = () => {
   text-decoration: none;
   color: inherit;
   cursor: pointer;
-  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+  transition:
+    transform 0.35s ease,
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
 }
 
 .contact-card:hover,
@@ -480,7 +499,9 @@ const reportIssue = () => {
   border-radius: 15px;
   background: #edf8f1;
   font-size: 22px;
-  transition: transform 0.35s ease, background 0.35s ease;
+  transition:
+    transform 0.35s ease,
+    background 0.35s ease;
 }
 
 .contact-card:hover .card-icon,
@@ -617,7 +638,10 @@ const reportIssue = () => {
   font-family: inherit;
   font-size: 14px;
   outline: none;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
 }
 
 .form-group input:focus,
@@ -647,7 +671,10 @@ const reportIssue = () => {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .submit-btn:hover {
@@ -705,7 +732,9 @@ const reportIssue = () => {
 
 .popup-enter-active,
 .popup-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
 .popup-enter-from,
@@ -759,7 +788,9 @@ const reportIssue = () => {
   border: 1px solid #e0e8e2;
   border-radius: 16px;
   background: white;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .faq-item.active {
@@ -799,7 +830,9 @@ const reportIssue = () => {
   color: #3b9b68;
   font-size: 22px;
   font-weight: 500;
-  transition: transform 0.3s ease, background 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    background 0.3s ease;
 }
 
 .faq-item.active .faq-icon {
