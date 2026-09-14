@@ -269,6 +269,7 @@
 
 <script setup>
 import { reactive, ref } from "vue";
+import { toastError } from "../utils/confirm.js";
 
 const showSuccess = ref(false);
 
@@ -299,7 +300,7 @@ const submitForm = async () => {
     const data = await response.json();
 
     if (!response.ok) {
-      alert(data.message || "Something went wrong.");
+      toastError("Message not sent", data.message || "Something went wrong.");
       return;
     }
 
@@ -316,7 +317,7 @@ const submitForm = async () => {
     form.message = "";
   } catch (error) {
     console.error("Contact form error:", error);
-    alert("Unable to send your message. Please try again.");
+    toastError("Message not sent", "Unable to send your message. Please try again.");
   }
 };
 
