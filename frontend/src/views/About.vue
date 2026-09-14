@@ -82,11 +82,11 @@
         <!-- Ihtishaam -->
         <article class="team-card">
           <div class="team-image">
-            <div class="initials-avatar">I</div>
+            <img :src="'/team/ihtishaam.jpg'" alt="Ihtishaam Johnson" />
           </div>
 
           <div class="team-info">
-            <h3>Ihtishaam</h3>
+            <h3>Ihtishaam Johnson</h3>
             <span>Co-Founder & Operations Director</span>
             <p>
               Ensures CleanSpaces operates efficiently and turns ideas into
@@ -98,11 +98,11 @@
         <!-- Krishendree -->
         <article class="team-card">
           <div class="team-image">
-            <div class="initials-avatar">K</div>
+            <img :src="'/team/krishendree.jpg'" alt="Krishendree Kistensamy" />
           </div>
 
           <div class="team-info">
-            <h3>Krishendree</h3>
+            <h3>Krishendree Kistensamy</h3>
             <span>Co-Founder & Strategy Director</span>
             <p>
               Shapes the direction of CleanSpaces and helps turn our vision into
@@ -114,11 +114,11 @@
         <!-- Sibongile -->
         <article class="team-card">
           <div class="team-image">
-            <div class="initials-avatar">S</div>
+            <img :src="'/team/sibongile.jpg'" alt="Sibongile Mpeta" />
           </div>
 
           <div class="team-info">
-            <h3>Sibongile</h3>
+            <h3>Sibongile Mpeta</h3>
             <span>Co-Founder & Marketing Director</span>
             <p>
               Builds awareness around CleanSpaces and connects our mission with
@@ -130,11 +130,11 @@
         <!-- Mubaarik -->
         <article class="team-card">
           <div class="team-image">
-            <div class="initials-avatar">M</div>
+            <img :src="'/team/mubaarik.jpg'" alt="Mubaarik Davids" />
           </div>
 
           <div class="team-info">
-            <h3>Mubaarik</h3>
+            <h3>Mubaarik Davids</h3>
             <span>Co-Founder & Customer Experience Director</span>
             <p>
               Focuses on creating a positive, accessible and helpful experience
@@ -144,6 +144,7 @@
         </article>
       </div>
     </section>
+    ```
 
     <section class="reviews-cta">
       <div class="reviews-content">
@@ -601,5 +602,20 @@
   .team-info {
     padding: 25px;
   }
+}
+
+.team-image {
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  border-radius: 20px 20px 0 0;
+}
+
+.team-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
 }
 </style>
