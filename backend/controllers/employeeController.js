@@ -7,7 +7,14 @@ const ROLE_WAGES = {
 }
 
 function validEmployee(body) {
-  return [body.name, body.phone, body.role, body.hire_date].every((value) => String(value || '').trim()) && Number.isInteger(Number(body.zone_id)) && Object.keys(ROLE_WAGES).includes(body.role)
+  const nameParts = String(body.name || '').trim().split(/\s+/).filter(Boolean)
+  return nameParts.length >= 2 && [body.phone, body.role, body.hire_date].every((value) => String(value || '').trim()) && !isPastDate(body.hire_date) && Number.isInteger(Number(body.zone_id)) && Object.keys(ROLE_WAGES).includes(body.role)
+}
+
+function isPastDate(value) {
+  const date = String(value || '')
+  const today = new Date().toLocaleDateString('en-CA')
+  return !/^\d{4}-\d{2}-\d{2}$/.test(date) || date < today
 }
 
 export async function listEmployees(req, res) {
@@ -18,7 +25,7 @@ export async function listEmployees(req, res) {
 }
 
 export async function createEmployee(req, res) {
-  if (!validEmployee(req.body)) return res.status(400).json({ message: 'Please complete every employee field and provide a valid role.' })
+  if (!validEmployee(req.body)) return res.status(400).json({ message: 'Provide every employee field, a first and last name, a valid role, and a hire date from today onward.' })
   const { name, phone, role, hire_date, zone_id } = req.body
   try {
     // daily_wage is derived in the database; do not accept client-provided wages
@@ -28,7 +35,7 @@ export async function createEmployee(req, res) {
 }
 
 export async function updateEmployee(req, res) {
-  if (!validEmployee(req.body)) return res.status(400).json({ message: 'Please complete every employee field and provide a valid role.' })
+  if (!validEmployee(req.body)) return res.status(400).json({ message: 'Provide every employee field, a first and last name, a valid role, and a hire date from today onward.' })
   const { name, phone, role, hire_date, zone_id, status = 'active' } = req.body
   if (!['active', 'inactive'].includes(status)) return res.status(400).json({ message: 'Invalid employment status.' })
   try {

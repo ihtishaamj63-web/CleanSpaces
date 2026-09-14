@@ -13,7 +13,7 @@
 			<form class="card" @submit.prevent="save">
 				<h2>{{ editing ? 'Edit crew member' : 'Add crew member' }}</h2>
 				<label>Name
-					<input v-model.trim="form.name" required />
+					<input v-model.trim="form.name" required pattern=".*\S+\s+\S+.*" title="Enter the employee's first and last name." placeholder="First and last name" />
 				</label>
 
 				<label>Phone
@@ -30,7 +30,7 @@
 				</label>
 
 				<label>Hire date
-					<input v-model="form.hire_date" required type="date" />
+					<input v-model="form.hire_date" required type="date" :min="today" />
 				</label>
 
 				<label>Assigned zone
@@ -79,6 +79,7 @@ const zones = ref([])
 const editing = ref(null)
 const message = ref('')
 const error = ref(false)
+const today = new Date().toLocaleDateString('en-CA')
 
 const blank = () => ({ name: '', phone: '', role: '', hire_date: '', zone_id: '', status: 'active' })
 const form = reactive(blank())
@@ -105,6 +106,16 @@ function reset() {
 }
 
 async function save() {
+	if (form.name.trim().split(/\s+/).length < 2) {
+		error.value = true
+		message.value = 'Enter the employee\'s first and last name.'
+		return
+	}
+	if (form.hire_date < today) {
+		error.value = true
+		message.value = 'The hire date cannot be before today.'
+		return
+	}
 	try {
 		const data = { ...form, zone_id: Number(form.zone_id) }
 		const result = editing.value ? await api.put(`/employees/${editing.value}`, data) : await api.post('/employees', data)

@@ -1,0 +1,237 @@
+:root {
+  /* Page — light cream / brown */
+  --cream: #f6efe3;
+  --cream-soft: #fbf6ec;
+  --cream-deep: #efe4d0;
+  --brown: #7a5c3d;
+  --brown-deep: #5b4228;
+  --brown-line: #e2d3ba;
+
+  /* Brand — dark nature green (nav, dashboard) */
+  --green: #233d2d;
+  --green-deep: #182b20;
+  --green-dark: #0f1e16;
+  --green-mid: #2e5138;
+  --green-soft: #3f6b4b;
+  --moss: #6b8f4e;
+  --lime: #a8c686;
+  --green-chalk: #dce9d4;
+
+  /* Text */
+  --ink: #2b2320;
+  --ink-soft: #6b5f52;
+
+  --white: #ffffff;
+  --shadow: 0 20px 45px -20px rgba(35, 61, 45, 0.5);
+  --shadow-sm: 0 8px 20px -10px rgba(35, 61, 45, 0.35);
+  --radius: 18px;
+  --radius-lg: 26px;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--cream);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--green-deep);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+input, textarea, select {
+  font-family: inherit;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 26px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-green {
+  background: var(--green);
+  color: var(--cream);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-green:hover {
+  background: var(--green-mid);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.btn-cream {
+  background: var(--cream);
+  color: var(--green-deep);
+  border: 1px solid var(--brown-line);
+}
+
+.btn-cream:hover {
+  background: var(--cream-soft);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-lime {
+  background: var(--moss);
+  color: var(--cream-soft);
+}
+
+.btn-lime:hover {
+  background: var(--green-soft);
+  transform: translateY(-2px);
+}
+
+.btn-block {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ---------- Container ---------- */
+.container {
+  width: min(1180px, 92%);
+  margin: 0 auto;
+}
+
+.section {
+  padding: 84px 0;
+}
+
+.section-head {
+  max-width: 640px;
+  margin-bottom: 44px;
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--moss);
+  margin-bottom: 12px;
+}
+
+.section-head h2 {
+  font-size: clamp(1.9rem, 3.4vw, 2.7rem);
+  margin-bottom: 14px;
+}
+
+.section-head p {
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+}
+
+.center {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ---------- Card ---------- */
+.card {
+  background: var(--cream-soft);
+  border: 1px solid var(--brown-line);
+  border-radius: var(--radius);
+  padding: 28px;
+}
+
+/* ---------- Page hero (non-home) ---------- */
+.page-hero {
+  background: var(--green);
+  color: var(--cream);
+  padding: 84px 0 72px;
+  position: relative;
+  overflow: hidden;
+}
+
+.page-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(700px 300px at 20% 0%, rgba(168, 198, 134, 0.16), transparent),
+    radial-gradient(600px 280px at 90% 100%, rgba(107, 143, 78, 0.2), transparent);
+  pointer-events: none;
+}
+
+.page-hero .container {
+  position: relative;
+  z-index: 1;
+}
+
+.page-hero h1 {
+  color: var(--cream);
+  font-size: clamp(2.2rem, 4.5vw, 3.3rem);
+  margin-bottom: 14px;
+}
+
+.page-hero p {
+  color: var(--green-chalk);
+  max-width: 620px;
+  font-size: 1.08rem;
+}
+
+/* ---------- Leaf ---------- */
+@keyframes floatLeaves {
+  0% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(6deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
+.leaf {
+  position: absolute;
+  opacity: 0.5;
+  animation: floatLeaves 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .section { padding: 60px 0; }
+}

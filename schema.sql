@@ -148,7 +148,7 @@ CREATE TABLE password_resets (
 -- ============================================================
 
 INSERT INTO users (name, email, phone, password_hash, role) VALUES
-('Admin', 'admin@cleanspaces.co.za', '0210000000', '$2b$10$tJzrS4NfMGWfn1/YPkOeYemYa8WDQSYKL7IWkLLtsVl8mRErqQ1a2', 'admin'),
+('Admin', 'admin@cleanspaces.co.za', '0210000000', '$2b$10$e28ZZ1QR6WGLrsTrwUzM3ebSywlgVp/a.xkHAwnTKiMdSJlEv/gTi', 'admin'),
 ('Thandiwe Mbeki', 'thandiwe@gmail.com', '0821234567', '$2b$10$tqwjARJKHokTYjJUg4EXNOWfJzZeOx.jJFwekHQDiLIkf5zKRwohi', 'resident'),
 ('Nomvula Dlamini', 'secondresident@gmail.com', '0839876543', '$2b$10$tqwjARJKHokTYjJUg4EXNOWfJzZeOx.jJFwekHQDiLIkf5zKRwohi', 'resident');
 
