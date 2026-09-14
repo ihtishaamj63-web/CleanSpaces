@@ -1,41 +1,53 @@
-// backend/scripts/rehash-passwords.js
+// backend/scripts/runschema.js
 import 'dotenv/config'
-import bcrypt from 'bcryptjs'
-import pool from '../db.js'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import mysql from 'mysql2/promise'
 
-const accounts = [
-  { email: 'admin@cleanspaces.co.za', password: 'Admin@2026' },
-  { email: 'thandiwe@gmail.com', password: 'Resident@2026' },
-]
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 async function run() {
-  console.log('🔄 Rehashing passwords...')
+  let schemaPath = path.join(__dirname, '..', '..', 'schema.sql')
+  if (!fs.existsSync(schemaPath)) {
+    schemaPath = path.join(__dirname, '..', 'schema.sql')
+  }
+  
+  // Check if schema.sql exists
+  if (!fs.existsSync(schemaPath)) {
+    console.error('❌ schema.sql not found at:', schemaPath)
+    console.log('📝 Please create schema.sql in the project root directory')
+    process.exit(1)
+  }
+  
+  const sql = fs.readFileSync(schemaPath, 'utf-8')
+
+  const rootConnection = await mysql.createConnection({
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    multipleStatements: true,
+  })
+
+  const dbName = process.env.DB_NAME || 'cleanspaces'
   
   try {
-    // Check if users exist first
-    const [existing] = await pool.execute('SELECT email FROM users')
-    console.log(`📊 Found ${existing.length} existing users`)
-    
-    for (const { email, password } of accounts) {
-      try {
-        const hash = await bcrypt.hash(password, 12)
-        const [result] = await pool.execute(
-          'UPDATE users SET password_hash = ? WHERE email = ?',
-          [hash, email]
-        )
-        console.log(`${email}: ${result.affectedRows ? '✅ updated' : '❌ not found'}`)
-      } catch (error) {
-        console.error(`Error updating ${email}:`, error.message)
-      }
-    }
-  } catch (error) {
-    console.error('❌ Database error:', error.message)
-    console.log('📝 Make sure the database exists and is accessible')
-    console.log('   Run "npm run schema" first to create the database')
-  }
+    await rootConnection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``)
+    console.log(`✅ Database '${dbName}' ready.`)
 
-  await pool.end()
-  console.log('✅ Done.')
+    await rootConnection.changeUser({ database: dbName })
+
+    console.log('🔄 Running schema.sql ...')
+    await rootConnection.query(sql)
+
+    console.log('✅ schema.sql applied successfully.')
+  } catch (error) {
+    console.error('❌ Failed to run schema.sql:', error.message)
+    process.exit(1)
+  } finally {
+    await rootConnection.end()
+  }
 }
 
 run()

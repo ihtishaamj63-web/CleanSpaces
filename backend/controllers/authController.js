@@ -1,320 +1,412 @@
-import bcrypt from 'bcryptjs'
+// backend/controllers/authController.js
+//
+// Every authentication action lives here:
+//   - signup / login (email + password)
+//   - googleAuth    (Google ID token OR access token)
+//   - forgotPassword / verifyResetToken / resetPassword
+//
+// Two rules of thumb used throughout:
+//   1. Never reveal to the client whether an email address is registered
+//      (login and forgot-password both answer the same way).
+//   2. Always validate the password on the server, even though the UI
+//      also validates it. The client can't be trusted.
+
 import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
+import pool from '../db.js'
 import { OAuth2Client } from 'google-auth-library'
-import db from '../db.js'
+import { sendResetEmail } from '../services/emailService.js'
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+// ---------- JWT setup ----------
 
+// These must match the values used in middleware/auth.js, or every
+// protected request will fail with "jwt issuer invalid".
+const JWT_ISSUER   = 'cleanspaces'
+const JWT_AUDIENCE = 'cleanspaces-api'
+
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET is required in production.')
+    }
+    return 'cleanspaces-development-secret'
+  }
+  return secret
+}
+
+/**
+ * Sign a JWT for a user. The payload carries just enough for the
+ * frontend to know who's logged in; sensitive fields stay in the DB.
+ */
 function signToken(user) {
   return jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '30d' }
+    { id: user.id, name: user.name, role: user.role },
+    getJwtSecret(),
+    {
+      expiresIn: process.env.JWT_EXPIRES || '24h',
+      issuer:    JWT_ISSUER,
+      audience:  JWT_AUDIENCE,
+    }
   )
 }
 
-function publicUser(user) {
-  return { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role }
+// ---------- Password strength ----------
+
+/**
+ * Mirrors the rules the Signup / PasswordReset pages show in the UI.
+ * Returns an error message, or null if the password is acceptable.
+ */
+function passwordStrengthError(password) {
+  const value = String(password || '')
+  if (value.length < 8)      return 'Password must be at least 8 characters.'
+  if (!/[A-Z]/.test(value))  return 'Password must include an uppercase letter.'
+  if (!/[a-z]/.test(value))  return 'Password must include a lowercase letter.'
+  if (!/[0-9]/.test(value))  return 'Password must include a number.'
+  return null
 }
+
+// ---------- Google OAuth client ----------
+
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+)
+
+// ==================== EMAIL / PASSWORD ====================
 
 // POST /api/auth/signup
 export async function signup(req, res) {
+  const { name, email, phone, password } = req.body
+  const normalisedEmail = String(email || '').trim().toLowerCase()
+
+  // 1. All fields present?
+  if (![name, email, phone, password].every((v) => String(v || '').trim())) {
+    return res.status(400).json({ message: 'All fields are required.' })
+  }
+
+  // 2. Password strong enough?
+  const strengthError = passwordStrengthError(password)
+  if (strengthError) {
+    return res.status(400).json({ message: strengthError })
+  }
+
   try {
-    const { name, email, phone, password } = req.body
-
-    if (!name || !email || !phone || !password) {
-      return res.status(400).json({ message: 'Please fill in all required fields.' })
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({ message: 'Password must be at least 8 characters.' })
-    }
-
-    const [existingUser] = await db.query('SELECT id FROM users WHERE email = ?', [email])
-    if (existingUser.length > 0) {
+    // 3. Email not already taken?
+    const [existing] = await pool.execute(
+      'SELECT id FROM users WHERE email = ? LIMIT 1',
+      [normalisedEmail]
+    )
+    if (existing.length > 0) {
       return res.status(409).json({ message: 'An account with this email already exists.' })
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10)
-
-    // New signups are always residents. Admin accounts are created directly
-    const [result] = await db.query(
-      `INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, 'resident')`,
-      [name, email, phone, hashedPassword]
+    // 4. Hash the password and create the user.
+    const hash = await bcrypt.hash(String(password), 10)
+    const [result] = await pool.execute(
+      'INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+      [name.trim(), normalisedEmail, phone.trim(), hash, 'resident']
     )
 
-    const user = { id: result.insertId, name, email, phone, role: 'resident' }
-    const token = signToken(user)
+    const user = {
+      id: result.insertId,
+      name: name.trim(),
+      email: normalisedEmail,
+      role: 'resident',
+    }
 
-    res.status(201).json({
-      message: 'Account created successfully!',
-      token,
-      user: publicUser(user),
-    })
+    return res.status(201).json({ token: signToken(user), user })
   } catch (error) {
     console.error('Signup error:', error)
-    res.status(500).json({ message: 'Unable to create account.' })
+    return res.status(500).json({ message: 'Unable to create your account right now.' })
   }
 }
 
 // POST /api/auth/login
 export async function login(req, res) {
+  const { email, password } = req.body
+
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required.' })
+  }
+
   try {
-    const { email, password } = req.body
-
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required.' })
-    }
-
-    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email])
-    if (users.length === 0) {
-      return res.status(401).json({ message: 'Invalid email or password.' })
-    }
+    const [users] = await pool.execute(
+      'SELECT id, name, email, role, password_hash FROM users WHERE email = ? LIMIT 1',
+      [String(email).trim().toLowerCase()]
+    )
 
     const user = users[0]
-    const passwordMatch = await bcrypt.compare(password, user.password_hash)
-    if (!passwordMatch) {
-      return res.status(401).json({ message: 'Invalid email or password.' })
+
+    // Same message for "no such user" and "wrong password" so attackers
+    // can't tell which accounts exist.
+    if (!user) {
+      return res.status(401).json({ message: 'Incorrect email or password.' })
     }
 
-    const token = signToken(user)
+    // Google accounts have no password_hash — tell the user to use Google.
+    if (!user.password_hash) {
+      return res.status(401).json({
+        message: 'This account was created with Google. Please use "Sign in with Google" instead.',
+      })
+    }
 
-    res.json({
-      message: 'Login successful!',
-      token,
-      user: publicUser(user),
+    const passwordMatches = await bcrypt.compare(String(password), user.password_hash)
+    if (!passwordMatches) {
+      return res.status(401).json({ message: 'Incorrect email or password.' })
+    }
+
+    return res.json({
+      token: signToken(user),
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
     })
   } catch (error) {
     console.error('Login error:', error)
-    res.status(500).json({ message: 'Unable to login.' })
+    return res.status(500).json({ message: 'Unable to log in right now.' })
   }
 }
 
+// GOOGLE
+
 // POST /api/auth/google
+
+// The frontend can send one of two payloads, depending on which Google
+// flow it uses:
+//   { credential }   — a signed ID token (JWT) from google.accounts.id
+//   { access_token } — an OAuth2 access token from google.accounts.oauth2
+
+// We accept both. Either way, the goal is the same:
+//   1. Verify the token with Google
+//   2. Extract the user's email + name + Google sub (unique user ID)
+//   3. Find or create the matching row in `users`
+//   4. Sign our own JWT and return it
+
 export async function googleAuth(req, res) {
   try {
-    const { credential, access_token } = req.body
+    const { credential, access_token } = req.body || {}
 
-    let email, name
+    if (!credential && !access_token) {
+      return res.status(400).json({ message: 'No Google credential provided.' })
+    }
+
+    let email, name, googleId
 
     if (credential) {
-      // JWT ID token flow (Google's default rendered button / One Tap)
-      const ticket = await googleClient.verifyIdToken({
-        idToken: credential,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      })
-      const payload = ticket.getPayload()
-      email = payload.email
-      name = payload.name
-    } else if (access_token) {
-      // Access token flow (custom Google button)
-      const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${access_token}` },
-      })
-      if (!profileRes.ok) {
+
+      // ID token
+      try {
+        const ticket = await googleClient.verifyIdToken({
+          idToken: credential,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        })
+        const payload = ticket.getPayload()
+        email    = payload.email
+        name     = payload.name
+        googleId = payload.sub
+      } catch (err) {
+        console.warn('Google ID-token verification failed:', err.message)
+        return res.status(401).json({ message: 'Invalid Google ID token.' })
+      }
+    } else {
+
+      //access token
+      try {
+        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${access_token}` },
+        })
+        if (!response.ok) {
+          throw new Error(`userinfo responded ${response.status}`)
+        }
+        const info = await response.json()
+        email    = info.email
+        name     = info.name
+        googleId = info.sub
+      } catch (err) {
+        console.warn('Google access-token verification failed:', err.message)
         return res.status(401).json({ message: 'Invalid Google access token.' })
       }
-      const profile = await profileRes.json()
-      email = profile.email
-      name = profile.name
-    } else {
-      return res.status(400).json({ message: 'Missing Google credential.' })
     }
 
-    const [existingUsers] = await db.query('SELECT * FROM users WHERE email = ?', [email])
+    if (!email) {
+      return res.status(400).json({ message: 'Email not provided by Google.' })
+    }
+
+    // Find or create the user
+    const [existing] = await pool.execute(
+      'SELECT id, name, email, role FROM users WHERE email = ?',
+      [email]
+    )
+
     let user
+    if (existing.length > 0) {
+      user = existing[0]
 
-    if (existingUsers.length > 0) {
-      user = existingUsers[0]
+      // If they signed up with email/password before, then started using
+      // Google, backfill their google_id so future lookups are faster.
+      if (googleId) {
+        await pool.execute(
+          'UPDATE users SET google_id = COALESCE(google_id, ?) WHERE id = ?',
+          [googleId, user.id]
+        )
+      }
     } else {
-      // No password comes from Google, so store a random unusable hash
-      // to satisfy a NOT NULL password column, if one exists.
-      const randomPassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10)
+      const displayName = name || email.split('@')[0]
 
-      const [result] = await db.query(
-        `INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, 'resident')`,
-        [name, email, '', randomPassword]
+      // password_hash is deliberately the empty string for Google
+      // accounts. login() treats a falsy password_hash as "use Google",
+      // password-login a Google account.
+
+      const [result] = await pool.execute(
+        `INSERT INTO users (name, email, phone, password_hash, role, google_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [displayName, email, '', '', 'resident', googleId || null]
       )
-      user = { id: result.insertId, name, email, phone: '', role: 'resident' }
+
+      user = { id: result.insertId, name: displayName, email, role: 'resident' }
     }
 
-    const token = signToken(user)
-
-    res.json({
-      message: 'Login successful!',
-      token,
-      user: publicUser(user),
+    return res.json({
+      token: signToken(user),
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
     })
   } catch (error) {
     console.error('Google auth error:', error)
-    res.status(401).json({ message: 'Google sign-in failed.' })
+    return res.status(500).json({ message: 'Unable to authenticate with Google.' })
   }
 }
+
+// PASSWORD RESET
 
 // POST /api/auth/forgot-password
 export async function forgotPassword(req, res) {
+  const { email } = req.body
+
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required.' })
+  }
+
+  // Same message regardless of whether the account exists
+  // the endpoint from revealing which emails are registered.
+  const genericResponse = {
+    message: 'If an account exists for that email address, a reset link has been sent.',
+  }
+
   try {
-    const { email } = req.body
-    if (!email) {
-      return res.status(400).json({ message: 'Email address is required.' })
+    const normalisedEmail = String(email).trim().toLowerCase()
+    const [users] = await pool.execute(
+      'SELECT id, name, email FROM users WHERE email = ?',
+      [normalisedEmail]
+    )
+
+    if (users.length === 0) {
+      return res.json(genericResponse)
     }
 
-    const [users] = await db.query('SELECT id FROM users WHERE email = ?', [email])
+    // Create a single-use reset token that expires in 1 hour.
+    const resetToken = crypto.randomBytes(32).toString('hex')
+    const expiresAt  = new Date(Date.now() + 60 * 60 * 1000)
 
-    // Intentionally not revealing whether the email exists in the response
-    // message — but if it does, generate a real, single-use reset token.
-    let resetLink = null
+    // Only one active token per user
+    await pool.execute('DELETE FROM password_resets WHERE user_id = ?', [users[0].id])
+    await pool.execute(
+      'INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)',
+      [users[0].id, resetToken, expiresAt]
+    )
 
-    if (users.length > 0) {
-      const userId = users[0].id
-      const token = crypto.randomBytes(32).toString('hex')
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour from now
+    const base = process.env.FRONTEND_URL || 'http://localhost:5173'
+    const resetLink = `${base}/reset-password?token=${resetToken}`
 
-      // Clear out any previous unused tokens for this user first.
-      await db.query('DELETE FROM password_resets WHERE user_id = ?', [userId])
+    try {
+      await sendResetEmail({
+        name: users[0].name,
+        email: users[0].email,
+        resetLink,
+      })
+    } catch (mailError) {
 
-      await db.query(
-        'INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)',
-        [userId, token, expiresAt]
-      )
-
-      // No email service is wired up yet, so the link is returned directly
-      // in the response and shown in the UI instead of being emailed.
-      const frontendOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:5173'
-      resetLink = `${frontendOrigin}/reset-password?token=${token}`
+      // Never leak delivery failures to the client.
+      console.error('Failed to send reset email:', mailError)
     }
 
-    res.json({
-      message: 'If an account exists for this email, a reset link has been created.',
-      resetLink, // null if the email wasn't found — frontend should only show it when present
-    })
+    return res.json(genericResponse)
   } catch (error) {
     console.error('Forgot password error:', error)
-    res.status(500).json({ message: 'Unable to process your request.' })
+    return res.status(500).json({ message: 'Unable to process your request.' })
   }
 }
 
-// ============================================================
-// VERIFY RESET TOKEN - NEW FUNCTION
-// ============================================================
+// POST /api/auth/verify-reset-token
 export async function verifyResetToken(req, res) {
+  const { token } = req.body
+
+  if (!token) {
+    return res.status(400).json({ message: 'Token is required.' })
+  }
+
   try {
-    const { token } = req.body
-
-    if (!token) {
-      return res.status(400).json({ message: 'Token is required.' })
-    }
-
-    // Query the database for the reset token with user information
-    const [resets] = await db.query(
-      `SELECT 
-        pr.id as token_id,
-        pr.token,
-        pr.user_id,
-        pr.expires_at,
-        u.id,
-        u.name,
-        u.email,
-        u.phone,
-        u.role
-      FROM password_resets pr
-      JOIN users u ON u.id = pr.user_id
-      WHERE pr.token = ?`,
+    const [rows] = await pool.execute(
+      `SELECT u.id, u.name, u.email, u.role
+         FROM password_resets pr
+         JOIN users u ON u.id = pr.user_id
+        WHERE pr.token = ? AND pr.expires_at > NOW()`,
       [token]
     )
 
-    if (resets.length === 0) {
-      return res.status(400).json({ 
-        message: 'Invalid or expired reset token.' 
-      })
+    if (rows.length === 0) {
+      return res.status(400).json({ valid: false, message: 'Invalid or expired token.' })
     }
 
-    const reset = resets[0]
-
-    // Check if token has expired
-    if (new Date(reset.expires_at) < new Date()) {
-      // Clean up expired token
-      await db.query('DELETE FROM password_resets WHERE id = ?', [reset.token_id])
-      return res.status(400).json({ 
-        message: 'This reset link has expired. Please request a new one.' 
-      })
-    }
-
-    // Return user information (don't return sensitive data)
     return res.json({
       valid: true,
       user: {
-        id: reset.id,
-        name: reset.name,
-        email: reset.email,
-        phone: reset.phone,
-        role: reset.role
-      }
+        id: rows[0].id,
+        name: rows[0].name,
+        email: rows[0].email,
+        role: rows[0].role,
+      },
     })
-
   } catch (error) {
-    console.error('Token verification error:', error)
-    return res.status(500).json({ 
-      message: 'Failed to verify token.' 
-    })
+    console.error('Verify token error:', error)
+    return res.status(500).json({ message: 'Unable to verify token.' })
   }
 }
 
 // POST /api/auth/reset-password
 export async function resetPassword(req, res) {
+  const { token, password } = req.body
+
+  if (!token || !password) {
+    return res.status(400).json({ message: 'Token and password are required.' })
+  }
+
+  const strengthError = passwordStrengthError(password)
+  if (strengthError) {
+    return res.status(400).json({ message: strengthError })
+  }
+
   try {
-    const { token, password } = req.body
-
-    if (!token || !password) {
-      return res.status(400).json({ message: 'Reset token and new password are required.' })
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({ message: 'Password must be at least 8 characters.' })
-    }
-
-    const [resets] = await db.query(
-      'SELECT id, user_id, expires_at FROM password_resets WHERE token = ?',
+    const [rows] = await pool.execute(
+      'SELECT user_id FROM password_resets WHERE token = ? AND expires_at > NOW()',
       [token]
     )
 
-    if (resets.length === 0) {
-      return res.status(400).json({ message: 'This reset link is invalid or has already been used.' })
+    if (rows.length === 0) {
+      return res.status(400).json({ message: 'Invalid or expired token.' })
     }
 
-    const reset = resets[0]
+    const userId = rows[0].user_id
+    const hash = await bcrypt.hash(String(password), 10)
 
-    if (new Date(reset.expires_at) < new Date()) {
-      await db.query('DELETE FROM password_resets WHERE id = ?', [reset.id])
-      return res.status(400).json({ message: 'This reset link has expired. Please request a new one.' })
-    }
+    await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [hash, userId])
 
-    const hashedPassword = await bcrypt.hash(password, 10)
+    // Consume the token so it can't be reused.
+    await pool.execute('DELETE FROM password_resets WHERE user_id = ?', [userId])
 
-    await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [hashedPassword, reset.user_id])
-
-    // Token is single-use — remove it once it's been used.
-    await db.query('DELETE FROM password_resets WHERE id = ?', [reset.id])
-
-    res.json({ message: 'Your password has been reset successfully. You can now log in.' })
+    return res.json({ message: 'Password has been reset successfully.' })
   } catch (error) {
     console.error('Reset password error:', error)
-    res.status(500).json({ message: 'Unable to reset your password.' })
-  }
-}
-
-// GET /api/auth/me  (used to re-validate a stored token on app load)
-export async function me(req, res) {
-  try {
-    const [users] = await db.query(
-      'SELECT id, name, email, phone, role FROM users WHERE id = ?',
-      [req.user.id]
-    )
-    if (!users.length) return res.status(404).json({ message: 'User not found.' })
-    res.json({ user: users[0] })
-  } catch (error) {
-    console.error('Me error:', error)
-    res.status(500).json({ message: 'Unable to load user.' })
+    return res.status(500).json({ message: 'Unable to reset your password.' })
   }
 }

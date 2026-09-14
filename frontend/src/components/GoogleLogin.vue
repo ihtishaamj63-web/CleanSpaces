@@ -1,10 +1,11 @@
 <template>
-  <div 
-    class="google-login-wrapper" 
+  <div
+    class="google-login-wrapper"
     @click="handleClick"
   >
     <slot />
     <div v-if="!hasSlot" ref="buttonRef" class="google-default-button"></div>
+    <p v-if="errorMessage" class="google-error">{{ errorMessage }}</p>
   </div>
 </template>
 
@@ -14,39 +15,50 @@ export default {
   props: {
     clientId: {
       type: String,
-      required: true
+      required: true,
     },
     popupType: {
       type: String,
-      default: 'TOKEN' // 'CODE' or 'TOKEN'
+      default: 'TOKEN', // 'CODE' or 'TOKEN'
     },
     callback: {
       type: Function,
-      default: () => {}
+      default: () => {},
     },
     error: {
       type: Function,
-      default: () => {}
-    }
+      default: () => {},
+    },
   },
   data() {
     return {
-      hasSlot: true,
-      isLoaded: false
+      hasSlot: false,
+      isLoaded: false,
+      errorMessage: '',
     }
   },
   mounted() {
-    // Check if slot is used
     this.hasSlot = !!this.$slots.default
-    // Load Google script
-    this.loadGoogleScript()
+    this.loadGoogleScript().catch((err) => {
+      this.errorMessage = err.message || 'Failed to load Google script.'
+      this.error(this.errorMessage)
+    })
   },
   methods: {
     loadGoogleScript() {
       return new Promise((resolve, reject) => {
-        if (window.google) {
+        if (window.google?.accounts) {
           this.isLoaded = true
-          resolve(window.google)
+          return resolve(window.google)
+        }
+
+        const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]')
+        if (existing) {
+          existing.addEventListener('load', () => {
+            this.isLoaded = true
+            resolve(window.google)
+          })
+          existing.addEventListener('error', () => reject(new Error('Failed to load Google script')))
           return
         }
 
@@ -54,16 +66,11 @@ export default {
         script.src = 'https://accounts.google.com/gsi/client'
         script.async = true
         script.defer = true
-        
         script.onload = () => {
           this.isLoaded = true
           resolve(window.google)
         }
-        
-        script.onerror = () => {
-          reject('Failed to load Google script')
-        }
-        
+        script.onerror = () => reject(new Error('Failed to load Google script'))
         document.head.appendChild(script)
       })
     },
@@ -73,7 +80,8 @@ export default {
         try {
           await this.loadGoogleScript()
         } catch (error) {
-          this.error(error)
+          this.errorMessage = error.message || 'Failed to load Google script.'
+          this.error(this.errorMessage)
           return
         }
       }
@@ -83,29 +91,34 @@ export default {
     openPopup() {
       try {
         if (!this.clientId) {
-          throw new Error('Client ID is required')
+          throw new Error('Client ID is required.')
+        }
+        if (!window.google?.accounts?.oauth2) {
+          throw new Error('Google OAuth client is not available yet.')
         }
 
         const client = window.google.accounts.oauth2
-        
+
         const config = {
           client_id: this.clientId,
           scope: 'email profile openid',
           ux_mode: 'popup',
           callback: (response) => {
-            if (response.code) {
-              this.callback(response)
-            } else if (response.access_token) {
+            this.errorMessage = ''
+            // Token flow → { access_token }, Code flow → { code }
+            if (response.code || response.access_token) {
               this.callback(response)
             } else if (response.error) {
+              this.errorMessage = response.error
               this.error(response)
             } else {
               this.callback(response)
             }
           },
           error_callback: (error) => {
+            this.errorMessage = error?.message || 'Google login failed.'
             this.error(error)
-          }
+          },
         }
 
         if (this.popupType === 'CODE') {
@@ -114,10 +127,11 @@ export default {
           client.initTokenClient(config).requestAccessToken()
         }
       } catch (error) {
-        this.error(error.message || 'Failed to open Google login')
+        this.errorMessage = error.message || 'Failed to open Google login.'
+        this.error(error)
       }
-    }
-  }
+    },
+  },
 }
 </script>
 
@@ -130,5 +144,12 @@ export default {
 
 .google-default-button {
   display: none;
+}
+
+.google-error {
+  margin-top: 0.5rem;
+  color: #ff8a80;
+  font-size: 0.85rem;
+  text-align: center;
 }
 </style>

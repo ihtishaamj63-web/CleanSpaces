@@ -1,79 +1,77 @@
 <template>
   <div class="home">
-    
     <!-- HERO SECTION -->
     <section class="hero-section">
       <div class="hero-glow"></div>
-      <p class="hero-eyebrow">Cape Flats · Community-Powered</p>
       <h1>Making our communities shine</h1>
       <p class="hero-sub">Join the CleanSpaces movement in the Cape Flats.</p>
       <button class="hero-btn" @click="goToSignup">Get started</button>
     </section>
 
     <!-- STATS SECTION -->
-    <section class="stats-counter">
-      <div class="stat-item">
-        <h3>120+</h3>
-        <p>Active zones</p>
-      </div>
-      <div class="stat-item">
-        <h3>850</h3>
-        <p>Volunteers</p>
-      </div>
-      <div class="stat-item">
-        <h3>2.5k</h3>
-        <p>Cleanups done</p>
-      </div>
-    </section>
+    <StatsCounter />
 
     <!-- MAP SECTION -->
     <section class="section-block">
       <div class="section-heading">
         <h2>Where we're working</h2>
         <p>Active and pending zones across the Cape Flats.</p>
+        <p class="map-hint">
+          <span class="hint-icon">📍</span>
+          Click a pin for zone details ·
+          <span class="hint-key">R</span> to reset view
+        </p>
       </div>
-      <ZoneMap />
+      <ZoneMap ref="zoneMapRef" />
     </section>
 
     <!-- TESTIMONIALS SECTION -->
-    <section class="section-block testimonials" v-if="testimonials.length > 0">
+    <section v-if="testimonials.length > 0" class="section-block testimonials">
       <div class="section-heading">
         <h2>What residents say</h2>
       </div>
-      
       <div class="testimonial-carousel">
-        <div v-for="t in testimonials" :key="t.id" class="testimonial-card">
-          <p class="quote">&ldquo;{{ t.quote }}&rdquo;</p>
-          <p class="author">— {{ t.name }}</p>
-          <p class="rating" aria-hidden="true">{{ '★'.repeat(t.rating) }}{{ '☆'.repeat(5 - t.rating) }}</p>
-        </div>
+        <TestimonialCard
+          v-for="t in testimonials"
+          :key="t.id"
+          :name="t.name"
+          :quote="t.quote"
+          :rating="t.rating"
+        />
       </div>
     </section>
-
   </div>
 </template>
 
 <script>
 import ZoneMap from '../components/ZoneMap.vue'
+import TestimonialCard from '../components/TestimonialCard.vue'
+import StatsCounter from '../components/StatsCounter.vue'
+import api from '../api.js'
 
 export default {
-  components: {
-    ZoneMap,
-  },
+  name: 'HomePage',
+  components: { ZoneMap, TestimonialCard, StatsCounter },
   data() {
     return {
       testimonials: []
     }
   },
   mounted() {
-    this.testimonials = []
+    this.loadTestimonials()
   },
   methods: {
     goToSignup() {
       this.$router.push('/signup')
     },
-    loadTestimonials() {
-      this.testimonials = []
+    async loadTestimonials() {
+      try {
+        const res = await api.get('/testimonials')
+        this.testimonials = res.data.data || []
+      } catch (error) {
+        // Section stays hidden when there's nothing to show.
+        console.warn('Could not load testimonials:', error.message)
+      }
     }
   }
 }
@@ -86,37 +84,42 @@ export default {
   color: #17332C;
 }
 
+/* The height of the fixed header in App.vue. Update in one place
+   if the header ever changes height. */
+.home {
+  --header-offset: 100px;
+}
+
 /* HERO */
 .hero-section {
   position: relative;
   background: linear-gradient(165deg, #1E4B3D 0%, #122A24 85%);
   color: #F7F3E8;
   text-align: center;
-  padding: 6rem 2rem 5.5rem;
+  /* Top padding clears the fixed header; the extra 3rem is breathing room. */
+  padding: calc(var(--header-offset) + 3rem) 2rem 5.5rem;
   overflow: hidden;
 }
+
 .hero-glow {
   position: absolute;
   inset: 0;
   background: radial-gradient(600px 400px at 80% -10%, rgba(232, 163, 61, .22), transparent 60%);
   pointer-events: none;
 }
-.hero-eyebrow {
-  position: relative;
-  margin: 0 0 1.1rem;
-  color: #E8A33D;
-  font-size: .9rem;
-  font-weight: 600;
-}
+
 .hero-section h1 {
   position: relative;
-  font-family: 'Fraunces', serif;
-  font-weight: 600;
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
   font-size: clamp(2.2rem, 4.5vw, 3.4rem);
   line-height: 1.1;
   margin: 0 0 1.1rem;
   letter-spacing: -.01em;
+  color: #ffffff;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
 }
+
 .hero-sub {
   position: relative;
   max-width: 480px;
@@ -124,6 +127,7 @@ export default {
   color: #B9C9C2;
   font-size: 1.05rem;
 }
+
 .hero-btn {
   position: relative;
   background: linear-gradient(135deg, #F0B65A, #E0952E);
@@ -136,42 +140,24 @@ export default {
   cursor: pointer;
   transition: transform .12s ease, box-shadow .12s ease;
 }
-.hero-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(224, 149, 46, .35); }
 
-/* STATS */
-.stats-counter {
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  background: #FFFFFF;
-  padding: 2.5rem 1.5rem;
-  box-shadow: 0 4px 20px rgba(18, 42, 36, 0.06);
+.hero-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(224, 149, 46, .35);
 }
-.stat-item { text-align: center; }
-.stat-item h3 {
-  font-family: 'Fraunces', serif;
-  font-weight: 600;
-  font-size: 2.2rem;
-  margin: 0;
-  color: #1E4B3D;
-  position: relative;
-  display: inline-block;
-}
-.stat-item h3::after {
-  content: '';
-  display: block;
-  width: 32px;
-  height: 3px;
-  margin: .4rem auto 0;
-  background: #E8A33D;
-  border-radius: 2px;
-}
-.stat-item p { margin: .5rem 0 0; color: #5E7269; font-size: .92rem; }
 
 /* SECTION BLOCKS */
-.section-block { max-width: 1100px; margin: 0 auto; padding: 4rem 1.5rem; }
-.section-heading { text-align: center; margin-bottom: 2.2rem; }
+.section-block {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+.section-heading {
+  text-align: center;
+  margin-bottom: 2.2rem;
+}
+
 .section-heading h2 {
   font-family: 'Fraunces', serif;
   font-weight: 600;
@@ -179,22 +165,43 @@ export default {
   font-size: 1.9rem;
   color: #17332C;
 }
-.section-heading p { margin: 0; color: #5E7269; }
+
+.section-heading p {
+  margin: 0;
+  color: #5E7269;
+}
+
+.map-hint {
+  margin-top: 0.8rem !important;
+  font-size: 0.85rem;
+  color: #8A9A91 !important;
+}
+
+.hint-icon {
+  margin-right: 4px;
+}
+
+.hint-key {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: rgba(18, 51, 45, 0.08);
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #12332d;
+}
 
 /* TESTIMONIALS */
-.testimonial-carousel { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; }
-.testimonial-card {
-  background: #FFFFFF;
-  border-radius: 14px;
-  padding: 1.9rem;
-  border: 1px solid rgba(30, 75, 61, 0.08);
-  box-shadow: 0 8px 22px rgba(18, 42, 36, .05);
+.testimonial-carousel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
 }
-.quote { font-style: italic; color: #2E3D39; margin: 0 0 1rem; line-height: 1.55; }
-.author { font-weight: 600; margin: 0; color: #17332C; }
-.rating { color: #E8A33D; margin: .35rem 0 0; letter-spacing: .05em; }
 
+/* On mobile, we still need to clear the header, so keep the offset. */
 @media (max-width: 600px) {
-  .hero-section { padding: 4.5rem 1.5rem 4rem; }
+  .hero-section {
+    padding: calc(var(--header-offset) + 2rem) 1.5rem 4rem;
+  }
 }
 </style>

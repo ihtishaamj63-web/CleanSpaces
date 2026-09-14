@@ -1,103 +1,108 @@
 <template>
-  <div id="app">
-    <!-- Header / Navbar - Hidden on Login and Signup -->
-    <header v-if="!hideNavbar" class="site-header">
-      <div class="header-inner">
-        <router-link to="/" class="logo-brand">
-          <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="CleanSpaces Logo" class="logo" />
-          <span class="brand-title">CLEAN<span>SPACES</span></span>
-        </router-link>
+  <!-- PUBLIC SITE CHROME — hidden on /admin routes, which get their own glass nav -->
+  <div v-if="!isAdmin" class="nav-shell">
+    <header class="nav" :class="{ scrolled }">
+      <router-link to="/" class="brand">
+        <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="CleanSpaces" class="logo" />
+        <span class="brand-name">CLEAN<em>SPACES</em></span>
+      </router-link>
 
-        <!-- ===== NAV LINKS ===== -->
-        <nav class="nav-links">
-          <router-link
-            v-if="token"
-            :to="role === 'admin' ? '/admin/dashboard' : '/resident/dashboard'"
-          >
-            Dashboard
-          </router-link>
-          <router-link to="/pricing">Pricing</router-link>
-          <router-link to="/how-it-works">How It Works</router-link>
-          <router-link to="/reviews">Reviews</router-link>
-          <router-link to="/about">About</router-link>
-          <router-link to="/contact">Contact</router-link>
-        </nav>
+      <nav class="links">
+        <router-link to="/pricing">Pricing</router-link>
+        <router-link to="/how-it-works">How It Works</router-link>
+        <router-link to="/reviews">Reviews</router-link>
+        <router-link to="/about">About</router-link>
+        <router-link to="/contact">Contact</router-link>
+      </nav>
 
-        <!-- ===== HEADER ACTIONS ===== -->
-        <!-- Admin link ONLY appears here when user is admin -->
-        <div class="header-actions">
-          <template v-if="!token">
-            <router-link to="/login" class="action-btn">Log In</router-link>
-          </template>
-          <template v-else>
-            <router-link v-if="role === 'admin'" to="/admin/dashboard" class="action-btn admin-btn">
-              Admin
-            </router-link>
-            <span v-if="role !== 'admin'" class="user-name">{{ userName }}</span>
-            <a href="#" class="action-btn outline" @click.prevent="logout">Log Out</a>
-          </template>
-        </div>
+      <div class="actions">
+        <template v-if="role === 'admin'">
+          <a href="#" class="nav-btn ghost" @click.prevent="logout">Log Out</a>
+          <router-link to="/admin/dashboard" class="nav-btn solid">Admin</router-link>
+        </template>
+        <template v-else-if="token">
+          <a href="#" class="nav-btn ghost" @click.prevent="logout">Log Out</a>
+          <router-link to="/resident/dashboard" class="nav-btn solid">My Zone</router-link>
+        </template>
+        <template v-else>
+          <router-link to="/login" class="nav-btn ghost">Log In</router-link>
+          <router-link to="/signup" class="nav-btn solid">Get Started</router-link>
+        </template>
       </div>
     </header>
-
-    <!-- Main Content -->
-    <main :class="{ 'no-navbar': hideNavbar }">
-      <router-view />
-    </main>
-
-    <!-- Footer -->
-    <footer v-if="!hideNavbar" class="site-footer">
-      <p>CleanSpaces — Community-Powered Cleanup Service</p>
-      <p class="footer-muted">Manenberg · Mitchell's Plain · Khayelitsha</p>
-    </footer>
   </div>
+
+  <!-- ADMIN NAV — same glass pill as the public site, admin content -->
+  <header v-else class="nav-shell">
+    <div class="nav" :class="{ scrolled }">
+      <router-link to="/admin/dashboard" class="brand">
+        <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="CleanSpaces" class="logo" />
+        <span class="brand-name">CLEAN<em>SPACES</em><small class="admin-badge">Admin</small></span>
+      </router-link>
+
+      <div class="actions">
+        <router-link to="/" class="nav-btn ghost">View Site</router-link>
+        <a href="#" class="nav-btn ghost" @click.prevent="logout">Log Out</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Admin routes get a light page background so the white cards
+       sit on the same near-white surface as the rest of the site. -->
+  <main :class="{ 'admin-main': isAdmin }">
+    <router-view name="default" v-slot="{ Component }">
+      <transition name="page" mode="out-in">
+        <component :is="Component" />
+      </transition>
+    </router-view>
+  </main>
+
+  <!-- Modal routes (e.g. /login) render here, on top of whatever the
+       'default' view above is showing — currently always the home page. -->
+  <router-view name="modal" />
+
+  <footer v-if="!isAdmin" class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="" class="footer-logo" />
+        <span class="brand-name small">CLEAN<em>SPACES</em></span>
+      </div>
+      <p>Community-powered cleanup service</p>
+      <nav class="footer-links">
+        <router-link to="/pricing">Pricing</router-link>
+        <router-link to="/reviews">Reviews</router-link>
+        <router-link to="/contact">Contact</router-link>
+      </nav>
+    </div>
+  </footer>
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
 const token = ref(localStorage.getItem('token'))
 const role = ref(localStorage.getItem('role'))
+const scrolled = ref(false)
 
-// Hide navbar on login/signup pages
-const hideNavbar = computed(() => {
-  const hiddenRoutes = ['/login', '/signup']
-  return hiddenRoutes.includes(route.path)
-})
+// Admin routes get their own nav content + light background, no footer
+const isAdmin = computed(() => route.path.startsWith('/admin'))
 
-// Get user name
-const userName = computed(() => {
-  const user = localStorage.getItem('user')
-  if (user) {
-    try {
-      const parsed = JSON.parse(user)
-      return parsed.name || parsed.email || 'User'
-    } catch {
-      return 'User'
-    }
-  }
-  return ''
-})
-
-// Sync on route change
-watch(
-  () => route.fullPath,
-  () => {
-    token.value = localStorage.getItem('token')
-    role.value = localStorage.getItem('role')
-  }
-)
-
-// Listen for storage changes
-window.addEventListener('storage', () => {
+// Keeps the nav in sync with login/logout happening anywhere
+// (same tab via route changes, other tabs via the storage event).
+function syncSession() {
   token.value = localStorage.getItem('token')
   role.value = localStorage.getItem('role')
-})
+}
+
+function onScroll() {
+  scrolled.value = window.scrollY > 12
+}
 
 function logout() {
+  // clear the full session, not just the token
   localStorage.removeItem('token')
   localStorage.removeItem('role')
   localStorage.removeItem('user')
@@ -105,228 +110,273 @@ function logout() {
   role.value = null
   router.push('/')
 }
+
+onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
+onMounted(() => {
+  window.addEventListener('storage', syncSession)
+  syncSession()
+})
+watch(() => route.fullPath, syncSession)
+onUnmounted(() => {
+  window.removeEventListener('scroll', onScroll)
+  window.removeEventListener('storage', syncSession)
+})
 </script>
 
-<style>
-/* ===== RESET & BASE ===== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+<style scoped>
+/* ---------- HEADER OFFSET ----------
+   Height of the fixed pill header (14px wrapper pad + 10px pill pad
+   + 50px logo/pill content + 10px pill pad). Used by pages that want
+   to reserve space below the header. */
+:root {
+  --header-offset: 84px;
 }
 
-body {
-  font-family: 'Work Sans', sans-serif;
-  background: #F7F3E8;
-  color: #122A24;
-}
-
-#app {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ===== MAIN CONTENT ===== */
-main {
-  flex: 1;
-  padding-top: 72px;
-  min-height: calc(100vh - 72px - 100px);
-}
-
-main.no-navbar {
-  padding-top: 0;
-  min-height: 100vh;
-}
-
-.site-header {
-  color: #f4f6f5;
-  background: #12332d;
+/* ---------- FLOATING GLASS NAV (shared by public + admin) ---------- */
+.nav-shell {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1200;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  height: 72px;
-  display: flex;
-  align-items: center;
+  z-index: 100;
+  padding: 14px 16px 0;
+  /* Match the hero's dark green so there's no white strip above the pill */
+  background: #0b2a25;
+  pointer-events: none;              /* let clicks pass through the wrapper */
 }
 
-.header-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  max-width: 1200px;
+/* Re-enable clicks on the actual nav pill. */
+.nav-shell .nav {
+  pointer-events: auto;
+}
+
+/* Admin shell uses the light page background so cards read as cards. */
+.nav-shell:has(+ .admin-main) {
+  background: var(--bg, #f7f3e8);
+}
+
+.nav {
+  max-width: 1160px;
   margin: 0 auto;
-  padding: 0.8rem 1.5rem;
-  flex-wrap: wrap;
-  width: 100%;
-}
-
-.logo-brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1.5rem;
+  padding: 10px 18px 10px 14px;
+  border-radius: 18px;
+  background: rgba(11, 42, 37, 0.72);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
+  transition: padding 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.nav.scrolled {
+  padding: 6px 18px 6px 14px;
+  background: rgba(11, 42, 37, 0.88);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   text-decoration: none;
   flex-shrink: 0;
 }
-
 .logo {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
-  background: white;
-  padding: 3px;
-  border-radius: 50%;
+  background: #fff;
+  padding: 4px;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-
-.brand-title {
-  font-size: 1.25rem;
+.brand:hover .logo {
+  transform: rotate(-8deg) scale(1.06);
+}
+.brand-name {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.18rem;
   font-weight: 800;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.01em;
   color: #f4f6f5;
-  text-transform: uppercase;
+  white-space: nowrap;
 }
-
-.brand-title span {
+.brand-name em {
+  font-style: normal;
   color: #7cb342;
 }
 
-.nav-links {
+/* "Admin" tag next to the wordmark on admin routes */
+.admin-badge {
+  margin-left: 0.6rem;
+  padding: 0.18rem 0.6rem;
+  border-radius: 99px;
+  background: rgba(124, 179, 66, 0.18);
+  color: #9ccc65;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  vertical-align: middle;
+}
+
+.links {
   display: flex;
-  gap: 1.25rem;
+  gap: 2px;
   flex-wrap: wrap;
 }
-
-.nav-links a {
-  color: #a0b0ac;
+.links a {
+  position: relative;
+  color: #c3d0cb;
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 500;
-  transition: color 0.2s ease;
+  padding: 8px 14px;
+  border-radius: 10px;
+  transition: color 0.2s, background 0.2s;
 }
-
-.nav-links a:hover,
-.nav-links a.router-link-active {
-  color: #e68517;
+.links a:hover {
+  color: #f4f6f5;
+  background: rgba(255, 255, 255, 0.07);
 }
-
-/* Header Actions */
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.action-btn {
-  padding: 0.5rem 1.1rem;
-  color: #e68517;
-  background: transparent;
-  border: 2px solid #e68517;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.action-btn:hover {
-  color: #0b2a25;
-  background: #e68517;
-}
-
-.action-btn.outline {
-  color: #a0b0ac;
-  border-color: #a0b0ac;
-}
-
-.action-btn.outline:hover {
-  color: #12332d;
-  background: #a0b0ac;
-}
-
-/* Admin Button - Only in header-actions */
-.admin-btn {
+.links a.router-link-active {
   color: #7cb342;
-  border-color: #7cb342;
+  font-weight: 600;
 }
-
-.admin-btn:hover {
-  color: #12332d;
+.links a.router-link-active::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
   background: #7cb342;
 }
 
-/* User Name */
-.user-name {
-  color: #f4f6f5;
-  font-size: 0.85rem;
-  font-weight: 500;
-  padding: 0.3rem 0.8rem;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.nav-btn {
+  display: inline-block;
+  padding: 9px 20px;
+  border-radius: 999px;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  white-space: nowrap;
+}
+.nav-btn.solid {
+  background: linear-gradient(135deg, #7cb342, #689f38);
+  color: #0b2a25;
+  box-shadow: 0 4px 16px rgba(124, 179, 66, 0.35);
+}
+.nav-btn.solid:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 7px 22px rgba(124, 179, 66, 0.5);
+}
+.nav-btn.ghost {
+  color: #c3d0cb;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+}
+.nav-btn.ghost:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.06);
 }
 
-/* ============================================================ */
-/* ===== FOOTER ===== */
-/* ============================================================ */
-.site-footer {
-  background: #12332d;
+/* ---------- PAGE TRANSITION ---------- */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.18s ease;
+}
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
+/* ---------- ADMIN PAGE BACKGROUND ----------
+   Near-white (the design system's --bg) so white cards still read
+   as cards — pure white would flatten them into the page. */
+.admin-main {
+  background: var(--bg);
+  min-height: 100vh;
+  /* push content below the fixed header */
+  padding-top: var(--header-offset, 84px);
+}
+
+/* ---------- FOOTER (public site only) ---------- */
+.footer {
+  background: #0b2a25;
   color: #a0b0ac;
-  padding: 1.5rem 1rem;
-  text-align: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 2.5rem 1rem 3rem;
+  margin-top: 0;
+}
+.footer-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.footer-logo {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  background: #fff;
+  padding: 3px;
+  border-radius: 8px;
+}
+.brand-name.small {
+  font-size: 1rem;
+  color: #f4f6f5;
+}
+.footer-inner > p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+.footer-links {
+  display: flex;
+  gap: 1.25rem;
+  margin-left: auto;
+}
+.footer-links a {
+  color: #a0b0ac;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: color 0.2s;
+}
+.footer-links a:hover {
+  color: #7cb342;
 }
 
-.site-footer p {
-  margin: 0.2rem 0;
-  font-size: 0.9rem;
+@media (max-width: 900px) {
+  .links { order: 3; width: 100%; justify-content: center; }
+  .nav { flex-wrap: wrap; gap: 0.75rem; }
+  .actions { margin-left: auto; }
 }
-
-.footer-muted {
-  font-size: 0.8rem;
-  opacity: 0.7;
-}
-
-@media (max-width: 820px) {
-  .nav-links {
-    display: none;
-  }
-
-  .site-header {
-    height: 68px;
-  }
-
-  .header-inner {
-    padding: 0.6rem 1.25rem;
-  }
-
-  .brand-title {
-    font-size: 1rem;
-  }
-
-  .logo {
-    width: 36px;
-    height: 36px;
-  }
-
-  main {
-    padding-top: 68px;
-  }
-}
-
-@media (max-width: 500px) {
-  .header-actions .action-btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
-  }
-
-  .user-name {
-    font-size: 0.75rem;
-    padding: 0.2rem 0.6rem;
-  }
+@media (max-width: 600px) {
+  .brand-name { display: none; }
+  .links a { padding: 7px 10px; font-size: 0.85rem; }
+  .nav-btn { padding: 8px 14px; font-size: 0.8rem; }
 }
 </style>

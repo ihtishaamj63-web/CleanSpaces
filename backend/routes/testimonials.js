@@ -1,7 +1,22 @@
-import { Router } from 'express'
+import { Router } from "express";
+import auth, { requireAdmin } from "../middleware/auth.js";
+import {
+  getTestimonials,
+  createTestimonial,
+  listPendingTestimonials,
+  moderateTestimonial,
+} from "../controllers/testimonialController.js";
 
-const router = Router()
+const router = Router();
 
-// Replace this stub with your real endpoints (see the dev plan for your list).
+// Public approved testimonials
+router.get("/", getTestimonials);
 
-export default router
+// Submit testimonial
+router.post("/", createTestimonial);
+
+// Admin: pending list + moderation
+router.get("/pending", auth, requireAdmin, listPendingTestimonials);
+router.put("/:id/moderate", auth, requireAdmin, moderateTestimonial);
+
+export default router;

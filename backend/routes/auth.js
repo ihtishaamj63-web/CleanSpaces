@@ -1,44 +1,30 @@
+// backend/routes/auth.js
+//
+// All public authentication endpoints. None of these require a token —
+// that's the whole point of them.
+
 import { Router } from 'express'
-import { 
-  signup, 
-  login, 
-  forgotPassword, 
+import {
+  signup,
+  login,
+  googleAuth,
+  forgotPassword,
   verifyResetToken,
-  resetPassword, 
-  me, 
-  googleAuth 
+  resetPassword,
 } from '../controllers/authController.js'
-import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()
 
-// ============================================================
-// PUBLIC ROUTES
-// ============================================================
-
-// User Registration
+// Email + password
 router.post('/signup', signup)
+router.post('/login',  login)
 
-// User Login
-router.post('/login', login)
-
-// Google Authentication
+// Google
 router.post('/google', googleAuth)
 
-// Forgot Password - Request reset link
-router.post('/forgot-password', forgotPassword)
-
-// Verify Reset Token - Check if token is valid
-router.post('/verify-reset-token', verifyResetToken)
-
-// Reset Password - Set new password
-router.post('/reset-password', resetPassword)
-
-// ============================================================
-// PROTECTED ROUTES (require authentication)
-// ============================================================
-
-// Get current user profile
-router.get('/me', requireAuth, me)
+// Password reset (three steps)
+router.post('/forgot-password',    forgotPassword)  // step 1: request email
+router.post('/verify-reset-token', verifyResetToken) // step 2: validate token
+router.post('/reset-password',     resetPassword)   // step 3: set new password
 
 export default router

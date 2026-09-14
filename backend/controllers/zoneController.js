@@ -1,152 +1,75 @@
-import db from '../db.js'
+import pool from '../db.js'
+import { PLAN_BASE } from '../config/plans.js'
 
-// GET /api/zones - List all zones (public)
+const plans = new Set(['small', 'medium', 'large'])
+
+export async function registerZone(req, res) {
+  const { name, neighborhood, households, plan_type, contact_name, contact_phone } = req.body
+  const householdCount = Number(households)
+  if (![name, neighborhood, plan_type, contact_name, contact_phone].every((value) => String(value || '').trim()) || !Number.isInteger(householdCount) || householdCount < 1 || !plans.has(plan_type)) {
+    return res.status(400).json({ message: 'Please provide a zone name, suburb, household count, plan and contact details.' })
+  }
+
+  try {
+    // contact details are now stored (previously collected then discarded)
+    const [result] = await pool.execute(
+      "INSERT INTO zones (name, neighborhood, households, plan_type, contact_name, contact_phone, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')",
+      [name.trim(), neighborhood.trim(), householdCount, plan_type, contact_name.trim(), contact_phone.trim()]
+    )
+    return res.status(201).json({ message: 'Your zone has been submitted for review.', zone: { id: result.insertId, name, neighborhood, households: householdCount, plan_type, status: 'pending', contact_name, contact_phone } })
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to register this zone right now.' })
+  }
+}
+
 export async function listZones(req, res) {
   try {
-    const [zones] = await db.query('SELECT * FROM zones ORDER BY created_at DESC')
-    res.json(zones)
-  } catch (error) {
-    console.error('List zones error:', error)
-    res.status(500).json({ message: 'Unable to fetch zones.' })
+    const [zones] = await pool.query("SELECT id, name, neighborhood, households, plan_type, contact_name, contact_phone, status, created_at FROM zones ORDER BY FIELD(status, 'pending', 'active'), created_at DESC")
+    return res.json(zones)
+  } catch {
+    return res.status(500).json({ message: 'Unable to load zones.' })
   }
 }
 
-// GET /api/zones/map - List zones for map with coordinates (public)
-export async function listZonesForMap(req, res) {
+// Public: every zone + a service-status flag, used by the homepage map
+// and the payment page's zone picker.
+export async function zoneMap(req, res) {
   try {
-    const [zones] = await db.query(`
-      SELECT id, name, neighborhood, status, households, 
-             latitude, longitude, created_at 
-      FROM zones 
-      WHERE status != 'rejected'
-      ORDER BY created_at DESC
+    const [zones] = await pool.query(`
+      SELECT z.id, z.name, z.neighborhood, z.households, z.plan_type, z.status,
+        CASE
+          WHEN EXISTS (SELECT 1 FROM cleanup_reports cr WHERE cr.zone_id = z.id) THEN 'completed'
+          WHEN EXISTS (SELECT 1 FROM cleanup_requests rq WHERE LOWER(rq.suburb) = LOWER(z.neighborhood) AND rq.status IN ('reviewing', 'scheduled')) THEN 'in_progress'
+          WHEN z.status = 'active' THEN 'active'
+          ELSE 'pending'
+        END AS cleanup_status
+      FROM zones z ORDER BY z.name
     `)
-    res.json(zones)
-  } catch (error) {
-    console.error('List zones for map error:', error)
-    res.status(500).json({ message: 'Unable to fetch zones for map.' })
+    // per-household price so the payment page displays it without hardcoding
+    // (single source of truth: config/plans.js)
+    for (const z of zones) z.per_household_amount = Math.round(PLAN_BASE[z.plan_type] / z.households)
+    return res.json(zones)
+  } catch {
+    return res.status(500).json({ message: 'Unable to load map areas.' })
   }
 }
 
-// GET /api/zones/pending - List only pending zones (admin only)
-export async function listPendingZones(req, res) {
+export async function approveZone(req, res) {
   try {
-    const [zones] = await db.query(`
-      SELECT id, name, neighborhood, status, households, 
-             latitude, longitude, created_at 
-      FROM zones 
-      WHERE status = 'pending'
-      ORDER BY created_at DESC
-    `)
-    res.json(zones)
-  } catch (error) {
-    console.error('List pending zones error:', error)
-    res.status(500).json({ message: 'Unable to fetch pending zones.' })
+    const [result] = await pool.execute("UPDATE zones SET status = 'active' WHERE id = ? AND status = 'pending'", [req.params.id])
+    if (!result.affectedRows) return res.status(404).json({ message: 'Pending zone not found.' })
+    return res.json({ message: 'Zone approved and activated.' })
+  } catch {
+    return res.status(500).json({ message: 'Unable to approve this zone.' })
   }
 }
 
-// GET /api/zones/:id - Get single zone
-export async function getZone(req, res) {
+export async function rejectZone(req, res) {
   try {
-    const { id } = req.params
-    const [zones] = await db.query('SELECT * FROM zones WHERE id = ?', [id])
-    
-    if (zones.length === 0) {
-      return res.status(404).json({ message: 'Zone not found.' })
-    }
-    
-    res.json(zones[0])
-  } catch (error) {
-    console.error('Get zone error:', error)
-    res.status(500).json({ message: 'Unable to fetch zone.' })
-  }
-}
-
-// POST /api/zones - Add new zone (admin only)
-export async function addZone(req, res) {
-  try {
-    const { name, neighborhood, households = 0, latitude, longitude, status = 'pending' } = req.body
-
-    if (!name || !neighborhood) {
-      return res.status(400).json({ message: 'Name and neighborhood are required.' })
-    }
-
-    const [result] = await db.query(
-      `INSERT INTO zones (name, neighborhood, households, latitude, longitude, status) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [name, neighborhood, households, latitude || null, longitude || null, status]
-    )
-
-    const [newZone] = await db.query('SELECT * FROM zones WHERE id = ?', [result.insertId])
-    
-    res.status(201).json({
-      message: 'Zone created successfully!',
-      zone: newZone[0]
-    })
-  } catch (error) {
-    console.error('Add zone error:', error)
-    res.status(500).json({ message: 'Unable to create zone.' })
-  }
-}
-
-// PUT /api/zones/:id - Update zone (admin only)
-export async function editZone(req, res) {
-  try {
-    const { id } = req.params
-    const { name, neighborhood, households, status, latitude, longitude } = req.body
-
-    // Check if zone exists
-    const [existing] = await db.query('SELECT * FROM zones WHERE id = ?', [id])
-    if (existing.length === 0) {
-      return res.status(404).json({ message: 'Zone not found.' })
-    }
-
-    // Build dynamic update query
-    const updates = []
-    const values = []
-
-    if (name !== undefined) { updates.push('name = ?'); values.push(name) }
-    if (neighborhood !== undefined) { updates.push('neighborhood = ?'); values.push(neighborhood) }
-    if (households !== undefined) { updates.push('households = ?'); values.push(households) }
-    if (status !== undefined) { updates.push('status = ?'); values.push(status) }
-    if (latitude !== undefined) { updates.push('latitude = ?'); values.push(latitude) }
-    if (longitude !== undefined) { updates.push('longitude = ?'); values.push(longitude) }
-
-    if (updates.length === 0) {
-      return res.status(400).json({ message: 'No fields to update.' })
-    }
-
-    values.push(id)
-    const query = `UPDATE zones SET ${updates.join(', ')} WHERE id = ?`
-    
-    await db.query(query, values)
-
-    const [updated] = await db.query('SELECT * FROM zones WHERE id = ?', [id])
-    
-    res.json({
-      message: 'Zone updated successfully!',
-      zone: updated[0]
-    })
-  } catch (error) {
-    console.error('Edit zone error:', error)
-    res.status(500).json({ message: 'Unable to update zone.' })
-  }
-}
-
-// DELETE /api/zones/:id - Delete zone (admin only)
-export async function removeZone(req, res) {
-  try {
-    const { id } = req.params
-
-    const [result] = await db.query('DELETE FROM zones WHERE id = ?', [id])
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Zone not found.' })
-    }
-    
-    res.json({ message: 'Zone deleted successfully.' })
-  } catch (error) {
-    console.error('Delete zone error:', error)
-    res.status(500).json({ message: 'Unable to delete zone.' })
+    const [result] = await pool.execute('DELETE FROM zones WHERE id = ? AND status = \'pending\'', [req.params.id])
+    if (!result.affectedRows) return res.status(404).json({ message: 'Pending zone not found.' })
+    return res.json({ message: 'Zone registration rejected.' })
+  } catch {
+    return res.status(500).json({ message: 'Unable to reject this zone. It may already have members.' })
   }
 }
