@@ -710,17 +710,18 @@ onUnmounted(() => {
 }
 
 /* Live activation ring — a real progress indicator, not just decoration */
-.progress-ring { position: absolute; inset: 35px; }
-
-.progress-ring svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg); /* start the fill at 12 o'clock */
+.progress-ring {
+  position: absolute;
+  inset: 35px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  box-shadow: 0 12px 30px rgba(31, 89, 54, 0.12);
 }
 
 .ring-track {
   fill: none;
-  stroke: rgba(23, 107, 58, 0.12);
+  stroke: rgba(23, 107, 58, 0.28);
   stroke-width: 12;
 }
 
