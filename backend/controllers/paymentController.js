@@ -78,6 +78,10 @@ export async function paymentNotify(req, res) {
     const data = req.body
     const paymentId = data.m_payment_id
 
+    // TEMP DEBUG — the complete, untouched ITN payload from PayFast.
+    // Every field, so the signature brute-force has the full input.
+    console.log('[ITN RAW BODY]', JSON.stringify(data))
+
     if (!verifyPayfastSignature(data)) return res.status(400).json({ message: 'Invalid signature.' })
 
     if (data.payment_status === 'COMPLETE') {
@@ -146,9 +150,8 @@ function generateCheckoutSignature(params) {
   return crypto.createHash('md5').update(data).digest('hex')
 }
 
-// ITN VERIFICATION signature: per PayFast's documented convention, the
-// passphrase is APPENDED after the last sorted parameter — the opposite
-// of the checkout signature. The two signature types genuinely differ.
+// ITN VERIFICATION signature: the passphrase is appended after the last
+// sorted parameter (PayFast's documented ITN convention).
 function verifyPayfastSignature(data) {
   const { signature, ...rest } = data
   const passphrase = process.env.PAYFAST_PASSPHRASE?.trim() || ''
