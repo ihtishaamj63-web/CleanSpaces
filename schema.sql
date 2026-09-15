@@ -1,8 +1,6 @@
 -- CLEANSPACES — schema.sql
--- Full rebuild: DROP the old database first, then run this top to bottom.
--- All prior migrations (v1.1–v1.3) are folded into the CREATEs below.
-
-DROP DATABASE IF EXISTS cleanspaces;
+-- Fresh rebuild: run top to bottom. Matches the production Railway database.
+-- Passwords (bcrypt, cost 10): Admin@2026 / Resident@2026
 
 CREATE DATABASE cleanspaces;
 USE cleanspaces;
@@ -141,47 +139,71 @@ CREATE TABLE password_resets (
 
 -- ============================================================
 -- SEED DATA
--- Passwords (bcrypt, cost 10):
---   admin@cleanspaces.co.za  / Admin@2026
---   thandiwe@gmail.com      / Resident@2026
---   secondresident@gmail.com / Resident@2026
 -- ============================================================
 
 INSERT INTO users (name, email, phone, password_hash, role) VALUES
-('Admin', 'admin@cleanspaces.co.za', '0210000000', '$2b$10$e28ZZ1QR6WGLrsTrwUzM3ebSywlgVp/a.xkHAwnTKiMdSJlEv/gTi', 'admin'),
+('Admin', 'admin@cleanspaces.co.za', '0210000000', '$2b$10$tJzrS4NfMGWfn1/YPkOeYemYa8WDQSYKL7IWkLLtsVl8mRErqQ1a2', 'admin'),
 ('Thandiwe Mbeki', 'thandiwe@gmail.com', '0821234567', '$2b$10$tqwjARJKHokTYjJUg4EXNOWfJzZeOx.jJFwekHQDiLIkf5zKRwohi', 'resident'),
-('Nomvula Dlamini', 'secondresident@gmail.com', '0839876543', '$2b$10$tqwjARJKHokTYjJUg4EXNOWfJzZeOx.jJFwekHQDiLIkf5zKRwohi', 'resident');
+('Nomvula Dlamini', 'secondresident@gmail.com', '0839876543', '$2b$10$tqwjARJKHokTYjJUg4EXNOWfJzZeOx.jJFwekHQDiLIkf5zKRwohi', 'resident'),
+('Andile Khoza', 'andile@gmail.com', '0845550199', '$2b$10$tqwjARJKHokTYjJUg4EXNOWfJzZeOx.jJFwekHQDiLIkf5zKRwohi', 'resident'),
+('Fatima Adams', 'fatima@gmail.com', '0854440288', '$2b$10$tqwjARJKHokTYjJUg4EXNOWfJzZeOx.jJFwekHQDiLIkf5zKRwohi', 'resident'),
+('Zanele Mkhize', 'zanele@gmail.com', '0837770366', '$2b$10$tqwjARJKHokTYjJUg4EXNOWfJzZeOx.jJFwekHQDiLIkf5zKRwohi', 'resident');
 
--- Zones: 1 active (the demo zone), 1 pending (shows the approval flow)
+-- Four zones: 2 active with different plans/progress, 1 pending (approval demo),
+-- 1 active with no members (the "join a zone" journey)
 INSERT INTO zones (name, neighborhood, households, plan_type, contact_name, contact_phone, status) VALUES
 ('NY108 Block', 'Manenberg', 62, 'small', 'Thandiwe Mbeki', '0821234567', 'active'),
-('Tafelsig West', "Mitchell's Plain", 180, 'medium', 'Nomvula Dlamini', '0839876543', 'pending');
+('Site B Cluster', 'Khayelitsha', 210, 'large', 'Andile Khoza', '0845550199', 'active'),
+('Tafelsig West', "Mitchell's Plain", 180, 'medium', 'Nomvula Dlamini', '0839876543', 'pending'),
+('Harare Street Committee', 'Khayelitsha', 95, 'small', 'Zanele Mkhize', '0837770366', 'active');
 
--- Crew assigned to the active zone
+-- Crew: each active zone has assigned workers; the pending zone has none
 INSERT INTO employees (name, phone, role, hire_date, zone_id, status) VALUES
 ('Sipho Ndlovu', '0821110001', 'Crew Lead', '2026-08-01', 1, 'active'),
-('Mubaarik Davids', '0683216302', 'Crew Lead', '2026-08-15', 1, 'active');
+('Mubaarik Davids', '0683216302', 'Crew Lead', '2026-08-15', 1, 'active'),
+('Bongani Sithole', '0812220003', 'Crew Member', '2026-08-20', 2, 'active'),
+('Nomsa Petersen', '0823330004', 'Crew Member', '2026-09-01', 2, 'active'),
+('Yusuf Ebrahim', '0844440005', 'Operations Manager', '2026-08-10', 2, 'active'),
+('Lerato Mokoena', '0815550006', 'Crew Member', '2026-09-05', 4, 'active');
 
--- Both residents belong to the zone; Thandiwe has paid this month (R108 —
--- the new threshold-based share), Nomvula is pending.
+-- Memberships: zone 1 mid-activation, zone 2 well on its way, zone 4 empty
 INSERT INTO zone_members (zone_id, user_id, payment_status) VALUES
 (1, 2, 'paid'),
-(1, 3, 'pending');
+(1, 3, 'pending'),
+(2, 4, 'paid'),
+(2, 5, 'paid'),
+(2, 6, 'paid');
 
+-- Payments: threshold-based shares (small/62 = R108, large/210 = R91)
 INSERT INTO payments (user_id, zone_id, amount, method, status) VALUES
-(2, 1, 108.00, 'eft', 'completed');
+(2, 1, 108.00, 'eft', 'completed'),
+(4, 2, 91.00, 'card', 'completed'),
+(5, 2, 91.00, 'card', 'completed'),
+(6, 2, 91.00, 'eft', 'completed');
 
--- Proof-of-work: one completed cleanup with a real, stable image pair
+-- Cleanup proof: real before/after photos hosted on imgbb
 INSERT INTO cleanup_reports (zone_id, employee_id, before_url, after_url, notes, date_cleaned) VALUES
 (1, 1,
- 'https://images.unsplash.com/photo-1605635595986-c469573a5676?q=80&w=1200',
- 'https://images.unsplash.com/photo-1618477388959-2ea07c0d4c22?q=80&w=1200',
+ 'https://i.ibb.co/kg72YRCV/before-ny108-jpg.jpg',
+ 'https://i.ibb.co/HpXFQPvb/after-ny108-jpg.png',
  'Cleared illegal dump at the NY108 corner; 14 bags removed.',
- '2026-09-14');
+ '2026-09-14'),
+(2, 3,
+ 'https://i.ibb.co/5gyFMCSj/before-siteb-jpg.jpg',
+ 'https://i.ibb.co/GqMjG9j/after-siteb-jpg.png',
+ 'First scheduled cleanup of the Site B cluster: storm drain cleared, 22 bags and bulky waste removed.',
+ '2026-09-12');
 
--- One approved testimonial so the homepage carousel + reviews page aren't empty
+-- Two approved testimonials + one pending (shows moderation flow)
 INSERT INTO testimonials (name, quote, rating, status) VALUES
-('Zanele M., Khayelitsha', 'Our street had nine months of uncollected rubbish. Three weeks after pooling on CleanSpaces, the children play outside again. The photo proof every week is what convinced the neighbours.', 5, 'approved');
+('Zanele M., Khayelitsha', 'Our street had nine months of uncollected rubbish. Three weeks after pooling on CleanSpaces, the children play outside again. The photo proof every week is what convinced the neighbours.', 5, 'approved'),
+('Andile K., Site B', 'Seeing the activation bar fill up got our whole cluster talking. Everyone can see who has paid and what the crew did — that transparency is why people contribute.', 4, 'approved'),
+('Nomvula D., Tafelsig', 'We are still gathering households, but the dashboard already makes it easy to show neighbours exactly where we stand.', 5, 'pending');
 
--- Verification: hashes must start with $2b$10
+-- One resident cleanup request in review (shows the report → admin flow)
+INSERT INTO cleanup_requests (user_id, location_name, address, suburb, description, preferred_date, photo_url, status) VALUES
+(3, 'Blocked storm drain', 'Oxford St & 5th Ave, Tafelsig', "Mitchell's Plain", 'Drain completely blocked by refuse; flooding risk when the rains come. About 15 bags of waste piled around it.', '2026-09-25', NULL, 'reviewing');
+
+-- Verification
 SELECT email, role, LEFT(password_hash, 7) AS hash_start FROM users;
+SELECT SUM(amount) FROM payments WHERE status = 'completed' AND created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01');

@@ -82,7 +82,10 @@
         <!-- Ihtishaam -->
         <article class="team-card">
           <div class="team-image">
-            <img :src="'/team/ihtishaam.jpg'" alt="Ihtishaam Johnson" />
+            <img
+              src="https://i.ibb.co/qYwYwTzr/ihtishaam.jpg"
+              alt="Ihtishaam Johnson"
+            />
           </div>
 
           <div class="team-info">
@@ -98,7 +101,10 @@
         <!-- Krishendree -->
         <article class="team-card">
           <div class="team-image">
-            <img :src="'/team/krishendree.jpg'" alt="Krishendree Kistensamy" />
+            <img
+              src="https://i.ibb.co/vxnWjT0R/krishendree.jpg"
+              alt="Krishendree Kistensamy"
+            />
           </div>
 
           <div class="team-info">
@@ -114,7 +120,10 @@
         <!-- Sibongile -->
         <article class="team-card">
           <div class="team-image">
-            <img :src="'/team/sibongile.jpg'" alt="Sibongile Mpeta" />
+            <img
+              src="https://i.ibb.co/VcY7jgRP/sibongile.jpg"
+              alt="Sibongile Mpeta"
+            />
           </div>
 
           <div class="team-info">
@@ -130,7 +139,10 @@
         <!-- Mubaarik -->
         <article class="team-card">
           <div class="team-image">
-            <img :src="'/team/mubaarik.jpg'" alt="Mubaarik Davids" />
+            <img
+              src="https://i.ibb.co/bRbDgKyS/mubaarik.png"
+              alt="Mubaarik Davids"
+            />
           </div>
 
           <div class="team-info">
@@ -144,7 +156,6 @@
         </article>
       </div>
     </section>
-    ```
 
     <section class="reviews-cta">
       <div class="reviews-content">
@@ -167,7 +178,7 @@
 </template>
 
 <script setup>
-// Static About page — no backend logic required.
+// Static About page — team photos hosted on imgbb, no backend logic required.
 </script>
 
 <style scoped>
@@ -412,26 +423,19 @@
   box-shadow: 0 20px 45px rgba(38, 91, 57, 0.12);
 }
 
+/* Photo column — fills the fixed-width left side of each card */
 .team-image {
   min-height: 230px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: linear-gradient(145deg, #dff3e5, #bce2c9);
+  overflow: hidden;
 }
 
-.initials-avatar {
-  width: 105px;
-  height: 105px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #ffffff;
-  color: #319158;
-  font-size: 3rem;
-  font-weight: 800;
-  box-shadow: 0 12px 30px rgba(38, 91, 57, 0.12);
+.team-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
 }
 
 .team-info {
@@ -460,7 +464,7 @@
   margin: 0;
   font-size: 0.92rem;
   line-height: 1.65;
-  color: #6b776f;
+  color: #4f5f57;
 }
 
 .reviews-cta {
@@ -602,20 +606,5 @@
   .team-info {
     padding: 25px;
   }
-}
-
-.team-image {
-  width: 100%;
-  height: 280px;
-  overflow: hidden;
-  border-radius: 20px 20px 0 0;
-}
-
-.team-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
 }
 </style>
