@@ -124,14 +124,13 @@ function buildPayfastParams(paymentId, amount, zoneName, req) {
     amount: amount.toFixed(2),
     item_name: `CleanSpaces subscription - ${zoneName}`
   }
-  params.signature = generateSignature(params)
+  params.signature = generateCheckoutSignature(params)
   return params
 }
 
-// EXPERIMENT: passphrase participates in the alphabetical sort (n < p < r)
-// instead of being appended after the last parameter. If PayFast's validator
-// sorts ALL keys including the passphrase, this produces the matching string.
-function generateSignature(params) {
+// CHECKOUT signature: the passphrase participates in the alphabetical sort
+// (n < p < r), discovered through testing against the sandbox validator.
+function generateCheckoutSignature(params) {
   const passphrase = process.env.PAYFAST_PASSPHRASE?.trim() || ''
 
   // Merge the passphrase into the parameter set so it sorts naturally
@@ -144,19 +143,30 @@ function generateSignature(params) {
     .map((k) => `${k}=${phpUrlEncode(allParams[k])}`)
     .join('&')
 
-  const hash = crypto.createHash('md5').update(data).digest('hex')
-
-  // TEMP DEBUG — the exact string hashed, for comparing against PayFast's
-  // own computation if a mismatch persists.
-  console.log('[PayFast Signature Debug]')
-  console.log('String to hash:', data)
-  console.log('Generated hash:', hash)
-
-  return hash
+  return crypto.createHash('md5').update(data).digest('hex')
 }
 
+// ITN VERIFICATION signature: per PayFast's documented convention, the
+// passphrase is APPENDED after the last sorted parameter — the opposite
+// of the checkout signature. The two signature types genuinely differ.
 function verifyPayfastSignature(data) {
   const { signature, ...rest } = data
-  const computed = generateSignature(rest)
+  const passphrase = process.env.PAYFAST_PASSPHRASE?.trim() || ''
+
+  // Build the sorted string WITHOUT the passphrase in the set
+  let dataStr = Object.keys(rest)
+    .filter((k) => rest[k] !== '' && rest[k] !== undefined && rest[k] !== null)
+    .sort()
+    .map((k) => `${k}=${phpUrlEncode(rest[k])}`)
+    .join('&')
+
+  // Append the passphrase at the END (documented ITN convention)
+  if (passphrase) dataStr += `&passphrase=${phpUrlEncode(passphrase)}`
+
+  const computed = crypto.createHash('md5').update(dataStr).digest('hex')
+
+  // TEMP DEBUG — proves whether the ITN convention matches
+  console.log('[ITN Verify Debug] received:', signature, '| computed:', computed, '| match:', computed === signature)
+
   return computed === signature
 }
