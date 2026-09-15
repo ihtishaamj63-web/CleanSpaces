@@ -270,6 +270,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
+import api from "../api.js";
 import TestimonialCard from "../components/TestimonialCard.vue";
 
 const cleanupPhotos = ref([]);
@@ -314,12 +315,11 @@ const ratingText = computed(() => {
   return messages[reviewForm.rating];
 });
 
+// The api instance carries the production base URL (VITE_API_BASE_URL),
+// so these calls work through the dev proxy AND on the deployed site.
 const fetchCleanupPhotos = async () => {
   try {
-    const response = await fetch("/api/reviews/cleanup-photos");
-
-    const data = await response.json();
-
+    const { data } = await api.get("/reviews/cleanup-photos");
     if (data.success) {
       cleanupPhotos.value = data.data;
     }
@@ -332,10 +332,7 @@ const fetchCleanupPhotos = async () => {
 
 const fetchTestimonials = async () => {
   try {
-    const response = await fetch("/api/testimonials");
-
-    const data = await response.json();
-
+    const { data } = await api.get("/testimonials");
     if (data.success) {
       testimonials.value = data.data;
     }
@@ -358,23 +355,11 @@ const submitReview = async () => {
   submitting.value = true;
 
   try {
-    const response = await fetch("/api/testimonials", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: reviewForm.name,
-        quote: reviewForm.quote,
-        rating: reviewForm.rating,
-      }),
+    await api.post("/testimonials", {
+      name: reviewForm.name,
+      quote: reviewForm.quote,
+      rating: reviewForm.rating,
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to submit review.");
-    }
 
     formSuccess.value = true;
 
@@ -383,7 +368,7 @@ const submitReview = async () => {
     reviewForm.rating = 0;
   } catch (error) {
     console.error("Review submission error:", error);
-    formError.value = error.message || "Unable to submit your review.";
+    formError.value = error.response?.data?.message || "Unable to submit your review.";
   } finally {
     submitting.value = false;
   }

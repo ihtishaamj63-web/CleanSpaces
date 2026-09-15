@@ -269,6 +269,7 @@
 
 <script setup>
 import { reactive, ref } from "vue";
+import api from "../api.js";
 import { toastError } from "../utils/confirm.js";
 
 const showSuccess = ref(false);
@@ -289,20 +290,9 @@ const toggleFaq = (index) => {
 
 const submitForm = async () => {
   try {
-    const response = await fetch("/api/contact", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      toastError("Message not sent", data.message || "Something went wrong.");
-      return;
-    }
+    // api instance carries the production base URL (VITE_API_BASE_URL),
+    // so this works both through the dev proxy and on the deployed site.
+    const { data } = await api.post("/contact", { ...form });
 
     showSuccess.value = true;
 
@@ -317,7 +307,7 @@ const submitForm = async () => {
     form.message = "";
   } catch (error) {
     console.error("Contact form error:", error);
-    toastError("Message not sent", "Unable to send your message. Please try again.");
+    toastError("Message not sent", error.response?.data?.message || "Unable to send your message. Please try again.");
   }
 };
 
