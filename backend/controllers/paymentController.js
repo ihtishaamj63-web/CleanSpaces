@@ -52,6 +52,18 @@ export async function createPayment(req, res) {
 
     // Real PayFast flow
     const params = buildPayfastParams(paymentId, amount, zone.name, req)
+
+    // TEMP DEBUG — compare this signature against the known-good local test
+    // (9a52d685... with clean values). The JSON.stringify of merchant_id and
+    // passphrase reveals hidden quotes/characters from the environment.
+    console.log('SIGNATURE DEBUG:', params.signature)
+    console.log('ENV DEBUG:', JSON.stringify({
+      merchant_id: process.env.PAYFAST_MERCHANT_ID,
+      merchant_key: process.env.PAYFAST_MERCHANT_KEY,
+      passphrase: process.env.PAYFAST_PASSPHRASE
+    }))
+    console.log('PARAMS DEBUG:', JSON.stringify(params))
+
     res.json({ url: 'https://sandbox.payfast.co.za/eng/process', params })
   } catch (err) {
     console.error(err)
@@ -78,7 +90,14 @@ export async function paymentNotify(req, res) {
     const data = req.body
     const paymentId = data.m_payment_id
 
-    if (!verifyPayfastSignature(data)) return res.status(400).json({ message: 'Invalid signature.' })
+    // TEMP DEBUG — log what the ITN webhook receives, including the signature
+    // PayFast computed (theirs) vs what we recompute (ours).
+    console.log('ITN DEBUG received:', JSON.stringify(data))
+
+    if (!verifyPayfastSignature(data)) {
+      console.log('ITN DEBUG signature mismatch — ours:', generateSignature({ ...data, signature: undefined }))
+      return res.status(400).json({ message: 'Invalid signature.' })
+    }
 
     if (data.payment_status === 'COMPLETE') {
       await db.query('UPDATE payments SET status = ? WHERE id = ?', ['completed', paymentId])
