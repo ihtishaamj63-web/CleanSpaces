@@ -4,7 +4,7 @@ import { perHouseholdAmount } from '../config/plans.js'
 
 // Where the Vue app lives — PayFast redirects the browser here after payment
 // (pointing it at the API would show raw JSON).
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').trim()
 
 // POST /api/payments/create — starts a subscription payment for the logged-in resident
 export async function createPayment(req, res) {
@@ -52,18 +52,6 @@ export async function createPayment(req, res) {
 
     // Real PayFast flow
     const params = buildPayfastParams(paymentId, amount, zone.name, req)
-
-    // TEMP DEBUG — compare this signature against the known-good local test
-    // (9a52d685... with clean values). The JSON.stringify of merchant_id and
-    // passphrase reveals hidden quotes/characters from the environment.
-    console.log('SIGNATURE DEBUG:', params.signature)
-    console.log('ENV DEBUG:', JSON.stringify({
-      merchant_id: process.env.PAYFAST_MERCHANT_ID,
-      merchant_key: process.env.PAYFAST_MERCHANT_KEY,
-      passphrase: process.env.PAYFAST_PASSPHRASE
-    }))
-    console.log('PARAMS DEBUG:', JSON.stringify(params))
-
     res.json({ url: 'https://sandbox.payfast.co.za/eng/process', params })
   } catch (err) {
     console.error(err)
@@ -90,14 +78,7 @@ export async function paymentNotify(req, res) {
     const data = req.body
     const paymentId = data.m_payment_id
 
-    // TEMP DEBUG — log what the ITN webhook receives, including the signature
-    // PayFast computed (theirs) vs what we recompute (ours).
-    console.log('ITN DEBUG received:', JSON.stringify(data))
-
-    if (!verifyPayfastSignature(data)) {
-      console.log('ITN DEBUG signature mismatch — ours:', generateSignature({ ...data, signature: undefined }))
-      return res.status(400).json({ message: 'Invalid signature.' })
-    }
+    if (!verifyPayfastSignature(data)) return res.status(400).json({ message: 'Invalid signature.' })
 
     if (data.payment_status === 'COMPLETE') {
       await db.query('UPDATE payments SET status = ? WHERE id = ?', ['completed', paymentId])
@@ -116,16 +97,29 @@ export async function paymentNotify(req, res) {
 
 // --- PayFast helpers ---
 
+// PHP-compatible URL encoding. PayFast's reference implementations use PHP's
+// urlencode, which differs from JavaScript's encodeURIComponent for six
+// characters — most importantly, spaces encode as + instead of %20.
+function phpUrlEncode(value) {
+  return encodeURIComponent(String(value))
+    .replace(/%20/g, '+')
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/\*/g, '%2A')
+}
+
 function buildPayfastParams(paymentId, amount, zoneName, req) {
   const params = {
-    merchant_id: process.env.PAYFAST_MERCHANT_ID,
-    merchant_key: process.env.PAYFAST_MERCHANT_KEY,
+    merchant_id: process.env.PAYFAST_MERCHANT_ID?.trim(),
+    merchant_key: process.env.PAYFAST_MERCHANT_KEY?.trim(),
     // Browser redirects go to the Vue app; only the webhook hits the backend.
     return_url: `${FRONTEND_URL}/payment/success/${paymentId}`,
     cancel_url: `${FRONTEND_URL}/payment`,
     notify_url: `${req.protocol}://${req.get('host')}/api/payments/notify`,
     name_first: 'CleanSpaces',
-    email_address: process.env.MAIL_USER,
+    email_address: process.env.MAIL_USER?.trim() || 'noreply@cleanspaces.co.za',
     m_payment_id: String(paymentId),
     amount: amount.toFixed(2),
     item_name: `CleanSpaces subscription - ${zoneName}`
@@ -135,17 +129,31 @@ function buildPayfastParams(paymentId, amount, zoneName, req) {
 }
 
 function generateSignature(params) {
-  const passphrase = process.env.PAYFAST_PASSPHRASE || ''
+  const passphrase = process.env.PAYFAST_PASSPHRASE?.trim() || ''
+
+  // PayFast checkout signature: non-empty values, alphabetical order,
+  // PHP-style URL-encoded, ampersand-joined, passphrase appended, MD5.
   let data = Object.keys(params)
-    .filter((k) => params[k] !== '' && params[k] !== undefined)
+    .filter((k) => k !== 'signature' && params[k] !== '' && params[k] !== undefined && params[k] !== null)
     .sort()
-    .map((k) => `${k}=${encodeURIComponent(params[k])}`)
+    .map((k) => `${k}=${phpUrlEncode(params[k])}`)
     .join('&')
-  if (passphrase) data += `&passphrase=${encodeURIComponent(passphrase)}`
-  return crypto.createHash('md5').update(data).digest('hex')
+
+  if (passphrase) data += `&passphrase=${phpUrlEncode(passphrase)}`
+
+  const hash = crypto.createHash('md5').update(data).digest('hex')
+
+  // TEMP DEBUG — the exact string hashed, for comparing against PayFast's
+  // own computation if a mismatch persists.
+  console.log('[PayFast Signature Debug]')
+  console.log('String to hash:', data)
+  console.log('Generated hash:', hash)
+
+  return hash
 }
 
 function verifyPayfastSignature(data) {
   const { signature, ...rest } = data
-  return generateSignature(rest) === signature
+  const computed = generateSignature(rest)
+  return computed === signature
 }
