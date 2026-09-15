@@ -3,7 +3,7 @@ import axios from 'axios'
 // All requests go through the Vite proxy (/api → backend), so the app works
 // in dev and behind any reverse proxy in production without config changes.
 const api = axios.create({
-  baseURL: '/api'
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api'
 })
 
 // Attach the saved JWT (if any) to every outgoing request.
