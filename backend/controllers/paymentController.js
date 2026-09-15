@@ -128,18 +128,21 @@ function buildPayfastParams(paymentId, amount, zoneName, req) {
   return params
 }
 
+// EXPERIMENT: passphrase participates in the alphabetical sort (n < p < r)
+// instead of being appended after the last parameter. If PayFast's validator
+// sorts ALL keys including the passphrase, this produces the matching string.
 function generateSignature(params) {
   const passphrase = process.env.PAYFAST_PASSPHRASE?.trim() || ''
 
-  // PayFast checkout signature: non-empty values, alphabetical order,
-  // PHP-style URL-encoded, ampersand-joined, passphrase appended, MD5.
-  let data = Object.keys(params)
-    .filter((k) => k !== 'signature' && params[k] !== '' && params[k] !== undefined && params[k] !== null)
-    .sort()
-    .map((k) => `${k}=${phpUrlEncode(params[k])}`)
-    .join('&')
+  // Merge the passphrase into the parameter set so it sorts naturally
+  const allParams = { ...params }
+  if (passphrase) allParams.passphrase = passphrase
 
-  if (passphrase) data += `&passphrase=${phpUrlEncode(passphrase)}`
+  let data = Object.keys(allParams)
+    .filter((k) => k !== 'signature' && allParams[k] !== '' && allParams[k] !== undefined && allParams[k] !== null)
+    .sort()
+    .map((k) => `${k}=${phpUrlEncode(allParams[k])}`)
+    .join('&')
 
   const hash = crypto.createHash('md5').update(data).digest('hex')
 
