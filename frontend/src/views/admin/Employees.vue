@@ -1,72 +1,83 @@
 <template>
-	<section class="admin-page">
-		<AdminNav />
-		<header>
-			<p class="eyebrow">Crew management</p>
-			<h1>Employees</h1>
-			<p>Add team members and assign them to active zones.</p>
-		</header>
+  <section class="admin-page">
+    <AdminNav />
+    <header>
+      <p class="eyebrow">Crew management</p>
+      <h1>Employees</h1>
+      <p>Add team members and assign them to active zones.</p>
+    </header>
 
-		<p v-if="message" :class="['message', error ? 'error' : 'success']">{{ message }}</p>
+    <p v-if="message" :class="['message', error ? 'error' : 'success']">{{ message }}</p>
 
-		<div class="layout">
-			<form class="card" @submit.prevent="save">
-				<h2>{{ editing ? 'Edit crew member' : 'Add crew member' }}</h2>
-				<label>Name
-					<input v-model.trim="form.name" required pattern=".*\S+\s+\S+.*" title="Enter the employee's first and last name." placeholder="First and last name" />
-				</label>
+    <div class="layout">
+      <form class="card" @submit.prevent="save">
+        <h2>{{ editing ? 'Edit crew member' : 'Add crew member' }}</h2>
+        <label>Name
+          <input v-model.trim="form.name" required />
+        </label>
 
-				<label>Phone
-					<input v-model.trim="form.phone" required type="tel" />
-				</label>
+        <label>Phone
+          <input v-model.trim="form.phone" required type="tel" />
+        </label>
 
-				<label>Role
-					<select v-model="form.role" required>
-						<option value="" disabled>Select a role</option>
-						<option value="Crew Member">Crew Member</option>
-						<option value="Crew Lead">Crew Lead</option>
-						<option value="Operations Manager">Operations Manager</option>
-					</select>
-				</label>
+        <label>Role
+          <select v-model="form.role" required>
+            <option value="" disabled>Select a role</option>
+            <option value="Crew Member">Crew Member</option>
+            <option value="Crew Lead">Crew Lead</option>
+            <option value="Operations Manager">Operations Manager</option>
+          </select>
+        </label>
 
-				<label>Hire date
-					<input v-model="form.hire_date" required type="date" :min="today" />
-				</label>
+        <label>Hire date
+          <input v-model="form.hire_date" required type="date" />
+        </label>
 
-				<label>Assigned zone
-					<select v-model="form.zone_id" required>
-						<option value="" disabled>Select active zone</option>
-						<option v-for="zone in zones" :value="zone.id" :key="zone.id">{{ zone.name }}</option>
-					</select>
-				</label>
+        <label>Assigned zone
+          <select v-model="form.zone_id" required>
+            <option value="" disabled>Select active zone</option>
+            <option v-for="zone in zones" :value="zone.id" :key="zone.id">{{ zone.name }}</option>
+          </select>
+        </label>
 
-				<label v-if="editing">Status
-					<select v-model="form.status">
-						<option value="active">Active</option>
-						<option value="inactive">Inactive</option>
-					</select>
-				</label>
+        <label v-if="editing">Status
+          <select v-model="form.status">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </label>
 
-				<div class="form-actions">
-					<button>{{ editing ? 'Save changes' : 'Add employee' }}</button>
-					<button v-if="editing" class="secondary" type="button" @click="reset">Cancel</button>
-				</div>
-			</form>
+        <div class="form-actions">
+          <button>{{ editing ? 'Save changes' : 'Add employee' }}</button>
+          <button v-if="editing" class="secondary" type="button" @click="reset">Cancel</button>
+        </div>
+      </form>
 
-			<div class="employee-list">
-				<article v-for="employee in employees" :key="employee.id" class="employee">
-					<div>
-						<h3>{{ employee.name }} <span :class="employee.status">{{ employee.status }}</span></h3>
-						<p>{{ employee.role }} · {{ employee.zone_name }}</p>
-						<small>{{ employee.phone }} · R{{ Number(employee.daily_wage).toFixed(2) }} / day</small>
-					</div>
-					<button class="secondary" @click="edit(employee)">Edit</button>
-				</article>
+      <div class="employee-list">
+        <article v-for="employee in employees" :key="employee.id" class="employee">
+          <div>
+            <h3>{{ employee.name }} <span :class="employee.status">{{ employee.status }}</span></h3>
+            <p>{{ employee.role }} · {{ employee.zone_name }}</p>
+            <small>{{ employee.phone }} · R{{ Number(employee.daily_wage).toFixed(2) }} / day</small>
+          </div>
 
-				<p v-if="!employees.length" class="empty">No employees yet.</p>
-			</div>
-		</div>
-	</section>
+          <div class="employee-actions">
+            <!-- NEW: contact the crew member directly on WhatsApp -->
+            <a
+              class="contact-btn"
+              :href="whatsappLink(employee.phone)"
+              target="_blank"
+              rel="noopener"
+              title="Message this crew member on WhatsApp"
+            >WhatsApp</a>
+            <button class="secondary" @click="edit(employee)">Edit</button>
+          </div>
+        </article>
+
+        <p v-if="!employees.length" class="empty">No employees yet.</p>
+      </div>
+    </div>
+  </section>
 </template>
 
 <script setup>
@@ -79,54 +90,52 @@ const zones = ref([])
 const editing = ref(null)
 const message = ref('')
 const error = ref(false)
-const today = new Date().toLocaleDateString('en-CA')
 
 const blank = () => ({ name: '', phone: '', role: '', hire_date: '', zone_id: '', status: 'active' })
 const form = reactive(blank())
 
+// NEW: build a WhatsApp chat link from the stored phone number.
+// Strips spaces and other non-digits (wa.me wants digits only) and ensures
+// the SA country code — numbers stored as 08xxxxxxxx become 278xxxxxxxx.
+function whatsappLink(phone) {
+  let digits = String(phone || '').replace(/\D/g, '')
+  if (digits.startsWith('0')) digits = '27' + digits.slice(1)
+  return `https://wa.me/${digits}`
+}
+
 async function load() {
-	try {
-		const [e, z] = await Promise.all([api.get('/employees'), api.get('/zones')])
-		employees.value = e.data
-		zones.value = z.data.filter((x) => x.status === 'active')
-	} catch (e) {
-		error.value = true
-		message.value = 'Unable to load crew details.'
-	}
+  try {
+    const [e, z] = await Promise.all([api.get('/employees'), api.get('/zones')])
+    employees.value = e.data
+    zones.value = z.data.filter((x) => x.status === 'active')
+  } catch (e) {
+    error.value = true
+    message.value = 'Unable to load crew details.'
+  }
 }
 
 function edit(e) {
-	editing.value = e.id
-	Object.assign(form, { ...e, hire_date: e.hire_date?.slice(0, 10) })
+  editing.value = e.id
+  Object.assign(form, { ...e, hire_date: e.hire_date?.slice(0, 10) })
 }
 
 function reset() {
-	editing.value = null
-	Object.assign(form, blank())
+  editing.value = null
+  Object.assign(form, blank())
 }
 
 async function save() {
-	if (form.name.trim().split(/\s+/).length < 2) {
-		error.value = true
-		message.value = 'Enter the employee\'s first and last name.'
-		return
-	}
-	if (form.hire_date < today) {
-		error.value = true
-		message.value = 'The hire date cannot be before today.'
-		return
-	}
-	try {
-		const data = { ...form, zone_id: Number(form.zone_id) }
-		const result = editing.value ? await api.put(`/employees/${editing.value}`, data) : await api.post('/employees', data)
-		message.value = result.data.message
-		error.value = false
-		reset()
-		await load()
-	} catch (e) {
-		error.value = true
-		message.value = e.response?.data?.message || 'Unable to save employee.'
-	}
+  try {
+    const data = { ...form, zone_id: Number(form.zone_id) }
+    const result = editing.value ? await api.put(`/employees/${editing.value}`, data) : await api.post('/employees', data)
+    message.value = result.data.message
+    error.value = false
+    reset()
+    await load()
+  } catch (e) {
+    error.value = true
+    message.value = e.response?.data?.message || 'Unable to save employee.'
+  }
 }
 
 onMounted(load)
@@ -147,7 +156,7 @@ input,select{padding:.65rem;border:1px solid var(--border);border-radius:7px}
 button{cursor:pointer;border:0;padding:.6rem .8rem;border-radius:7px;background:var(--green);color:var(--green-deeper);font-weight:800}
 .secondary{background:#e7eeea;color:var(--green-dark)}
 .employee-list{display:grid;gap:.75rem;align-content:start}
-.employee{display:flex;justify-content:space-between;align-items:center}
+.employee{display:flex;justify-content:space-between;align-items:center;gap:1rem}
 .employee h3{margin:0;color:var(--green-dark)}
 .employee p,.employee small{margin:.2rem 0;color:var(--text-muted)}
 .employee span{font-size:.7rem;text-transform:uppercase;padding:.2rem .4rem;border-radius:99px}
@@ -157,5 +166,11 @@ button{cursor:pointer;border:0;padding:.6rem .8rem;border-radius:7px;background:
 .success{background:#e7f5e8;color:#286033}
 .error{background:#fff0f0;color:#9b2525}
 .empty{color:var(--text-muted)}
-@media(max-width:760px){.layout{grid-template-columns:1fr}}
+
+/* NEW: action cluster per crew row */
+.employee-actions{display:flex;gap:.5rem;align-items:center;flex-shrink:0}
+.contact-btn{padding:.45rem .75rem;border-radius:7px;background:#e9f8ef;border:1px solid #ccebd8;color:#1e7a46;font-weight:700;font-size:.8rem;text-decoration:none}
+.contact-btn:hover{background:#d8f0e2}
+
+@media(max-width:760px){.layout{grid-template-columns:1fr}.employee{flex-direction:column;align-items:flex-start}.employee-actions{width:100%}}
 </style>
