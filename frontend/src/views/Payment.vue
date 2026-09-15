@@ -26,7 +26,9 @@
         <header class="page-head">
           <p class="eyebrow">Payment</p>
           <h1>Complete Your Subscription</h1>
-          <p class="page-sub">Choose your zone and pay your monthly contribution.</p>
+          <p class="page-sub">
+            Choose your zone and pay your monthly contribution.
+          </p>
         </header>
 
         <div class="steps">
@@ -54,13 +56,20 @@
                 <label for="zone">Select your zone</label>
                 <select id="zone" v-model="selectedZoneId" class="select">
                   <option v-for="z in zones" :key="z.id" :value="z.id">
-                    {{ z.name }} — {{ z.neighborhood }} ({{ z.households }} households)
+                    {{ z.name }} — {{ z.neighborhood }} ({{
+                      z.households
+                    }}
+                    households)
                   </option>
                 </select>
               </div>
               <div v-if="selectedZone" class="zone-quick">
-                <div class="row"><span>Plan</span><span>{{ planInfo.label }}</span></div>
-                <div class="row"><span>Zone total</span><span>{{ planInfo.range }}/month</span></div>
+                <div class="row">
+                  <span>Plan</span><span>{{ planInfo.label }}</span>
+                </div>
+                <div class="row">
+                  <span>Zone total</span><span>{{ planInfo.range }}/month</span>
+                </div>
               </div>
             </div>
 
@@ -68,11 +77,16 @@
               <h2 class="panel-title">Payment Method</h2>
 
               <div class="method-list">
-                <label class="method-option" :class="{ active: method === 'card' }">
+                <label
+                  class="method-option"
+                  :class="{ active: method === 'card' }"
+                >
                   <input type="radio" value="card" v-model="method" />
                   <div class="method-body">
                     <span class="method-name">Debit / Credit Card</span>
-                    <span class="method-sub">Visa, Mastercard — processed by PayFast</span>
+                    <span class="method-sub"
+                      >Visa, Mastercard — processed by PayFast</span
+                    >
                   </div>
                   <div class="method-badges">
                     <span class="badge-card visa">VISA</span>
@@ -80,11 +94,17 @@
                   </div>
                 </label>
 
-                <label class="method-option" :class="{ active: method === 'eft' }">
+                <label
+                  class="method-option"
+                  :class="{ active: method === 'eft' }"
+                >
                   <input type="radio" value="eft" v-model="method" />
                   <div class="method-body">
                     <span class="method-name">Instant EFT</span>
-                    <span class="method-sub">Pay directly from your bank account — no card needed</span>
+                    <span class="method-sub"
+                      >Pay directly from your bank account — no card
+                      needed</span
+                    >
                   </div>
                   <div class="method-badges">
                     <span class="badge-bank">BANK</span>
@@ -94,27 +114,37 @@
 
               <div v-if="method === 'card'" class="gateway-info">
                 <p>
-                  After clicking pay, you'll be redirected to PayFast's secure page to enter your
-                  card details. Card information never touches CleanSpaces' servers.
+                  After clicking pay, you'll be redirected to PayFast's secure
+                  page to enter your card details. Card information never
+                  touches CleanSpaces' servers.
                 </p>
               </div>
 
               <div v-if="method === 'eft'" class="gateway-info">
                 <p>
-                  You'll be redirected to your bank's secure login to approve the payment.
-                  Supported: FNB, Standard Bank, ABSA, Nedbank, Capitec.
+                  You'll be redirected to your bank's secure login to approve
+                  the payment. Supported: FNB, Standard Bank, ABSA, Nedbank,
+                  Capitec.
                 </p>
               </div>
 
               <p v-if="error" class="error-text">{{ error }}</p>
 
-              <button class="submit-btn" type="button" :disabled="loading || !selectedZoneId" @click="pay">
-                {{ loading ? 'Processing…' : `Pay R${perHousehold} Securely` }}
+              <button
+                class="submit-btn"
+                type="button"
+                :disabled="loading || !selectedZoneId"
+                @click="pay"
+              >
+                {{ loading ? "Processing…" : `Pay R${perHousehold} Securely` }}
               </button>
 
               <p class="mandate">
-                By paying, you authorise CleanSpaces to bill R{{ perHousehold }} monthly for your
-                zone subscription. Cancel anytime from your dashboard. Prices include VAT.
+                By paying, you authorise CleanSpaces to bill R{{
+                  perHousehold
+                }}
+                monthly for your zone subscription. Cancel anytime from your
+                dashboard. Prices include VAT.
               </p>
             </div>
           </div>
@@ -140,7 +170,8 @@
               <div class="activation-fill"></div>
             </div>
             <p class="panel-activation">
-              Once 60% of households have paid, weekly cleanups begin — and at that point your zone is fully funded.
+              Once 60% of households have paid, weekly cleanups begin — and at
+              that point your zone is fully funded.
             </p>
 
             <div class="panel-divider"></div>
@@ -162,7 +193,8 @@
             </div>
 
             <div class="panel-badge">
-              Pooled with {{ selectedZone?.households ?? '—' }} households in your zone
+              Pooled with {{ selectedZone?.households ?? "—" }} households in
+              your zone
             </div>
           </aside>
         </div>
@@ -172,59 +204,78 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import api from '../api.js'
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import api from "../api.js";
 
-const router = useRouter()
+const router = useRouter();
 
-const checking = ref(true)
-const alreadyPaid = ref(false)
-const paidZoneName = ref('')
-const myZoneName = ref('')
+const checking = ref(true);
+const alreadyPaid = ref(false);
+const paidZoneName = ref("");
+const myZoneName = ref("");
 
-const zones = ref([])
-const selectedZoneId = ref(null)
-const method = ref('card')
-const loading = ref(false)
-const error = ref('')
+const zones = ref([]);
+const selectedZoneId = ref(null);
+const method = ref("card");
+const loading = ref(false);
+const error = ref("");
 
 // Safety net if the zones endpoint is unreachable during development.
 const fallbackZones = [
-  { id: 1, name: 'NY108 Block', neighborhood: 'Manenberg', households: 62, plan_type: 'small', status: 'active', per_household_amount: 108 },
-]
+  {
+    id: 1,
+    name: "NY108 Block",
+    neighborhood: "Manenberg",
+    households: 62,
+    plan_type: "small",
+    status: "active",
+    per_household_amount: 108,
+  },
+];
 
 const planInfoMap = {
-  small: { label: 'Small Zone', range: 'R3,500 – R4,500' },
-  medium: { label: 'Medium Zone', range: 'R6,500 – R8,000' },
-  large: { label: 'Large Zone', range: 'R10,000 – R13,000' },
-}
+  small: { label: "Small Zone", range: "R3,500 – R4,500" },
+  medium: { label: "Medium Zone", range: "R6,500 – R8,000" },
+  large: { label: "Large Zone", range: "R10,000 – R13,000" },
+};
 
-const selectedZone = computed(() => zones.value.find(z => z.id === selectedZoneId.value) || null)
-const planInfo = computed(() => planInfoMap[selectedZone.value?.plan_type] || { label: '—', range: '—' })
+const selectedZone = computed(
+  () => zones.value.find((z) => z.id === selectedZoneId.value) || null,
+);
+const planInfo = computed(
+  () =>
+    planInfoMap[selectedZone.value?.plan_type] || { label: "—", range: "—" },
+);
 
 // Price comes from the backend (single source of truth: config/plans.js)
-const perHousehold = computed(() => selectedZone.value?.per_household_amount ?? '—')
+const perHousehold = computed(
+  () => selectedZone.value?.per_household_amount ?? "—",
+);
 
 // First day of next month — when the next subscription payment is due.
 const nextDue = computed(() => {
-  const d = new Date()
-  d.setMonth(d.getMonth() + 1, 1)
-  return d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })
-})
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1, 1);
+  return d.toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+});
 
 onMounted(async () => {
   // Already paid this month? Skip straight to the confirmation state.
   try {
-    const dash = await api.get('/resident/dashboard')
-    if (dash.data.hasZone && dash.data.zone.myStatus === 'paid') {
-      alreadyPaid.value = true
-      paidZoneName.value = dash.data.zone.name
-      checking.value = false
-      return
+    const dash = await api.get("/resident/dashboard");
+    if (dash.data.hasZone && dash.data.zone.myStatus === "paid") {
+      alreadyPaid.value = true;
+      paidZoneName.value = dash.data.zone.name;
+      checking.value = false;
+      return;
     }
     if (dash.data.hasZone) {
-      myZoneName.value = dash.data.zone.name
+      myZoneName.value = dash.data.zone.name;
     }
   } catch {
     // Dashboard unreachable — allow the payment attempt
@@ -232,55 +283,59 @@ onMounted(async () => {
 
   // /zones is admin-only; the public map endpoint lists every zone.
   try {
-    const res = await api.get('/zones/map')
-    const active = (Array.isArray(res.data) ? res.data : []).filter(z => z.status === 'active')
-    if (active.length === 0) throw new Error('no active zones')
-    zones.value = active
+    const res = await api.get("/zones/map");
+    const active = (Array.isArray(res.data) ? res.data : []).filter(
+      (z) => z.status === "active",
+    );
+    if (active.length === 0) throw new Error("no active zones");
+    zones.value = active;
   } catch {
-    zones.value = fallbackZones
+    zones.value = fallbackZones;
   }
 
   // Preselect the resident's own zone if it's in the list
-  const mine = zones.value.find(z => z.name === myZoneName.value)
-  selectedZoneId.value = (mine || zones.value[0])?.id ?? null
-  checking.value = false
-})
+  const mine = zones.value.find((z) => z.name === myZoneName.value);
+  selectedZoneId.value = (mine || zones.value[0])?.id ?? null;
+  checking.value = false;
+});
 
 async function pay() {
-  error.value = ''
-  loading.value = true
+  error.value = "";
+  loading.value = true;
   try {
-    const res = await api.post('/payments/create', {
+    const res = await api.post("/payments/create", {
       zone_id: selectedZoneId.value,
-      method: method.value
-    })
+      method: method.value,
+    });
     if (res.data.bypass) {
       // DEV_BYPASS — payment completed instantly, no gateway involved
-      router.push(`/payment/success/${res.data.payment.id}`)
+      router.push(`/payment/success/${res.data.payment.id}`);
     } else {
-      submitToPayfast(res.data.url, res.data.params)
+      submitToPayfast(res.data.url, res.data.params);
     }
   } catch (e) {
-    error.value = e.response?.data?.message || 'Could not start the payment. Is the backend running?'
-    loading.value = false
+    error.value =
+      e.response?.data?.message ||
+      "Could not start the payment. Is the backend running?";
+    loading.value = false;
   }
 }
 
 // Build a hidden form and POST it to PayFast — card details are entered
 // on PayFast's own PCI-compliant page, never here.
 function submitToPayfast(url, params) {
-  const form = document.createElement('form')
-  form.method = 'POST'
-  form.action = url
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = url;
   Object.keys(params).forEach((key) => {
-    const input = document.createElement('input')
-    input.type = 'hidden'
-    input.name = key
-    input.value = params[key]
-    form.appendChild(input)
-  })
-  document.body.appendChild(form)
-  form.submit()
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = key;
+    input.value = params[key];
+    form.appendChild(input);
+  });
+  document.body.appendChild(form);
+  form.submit();
 }
 </script>
 
@@ -293,9 +348,14 @@ function submitToPayfast(url, params) {
   color: #183b28;
 }
 
-.wrap { max-width: 1000px; margin: 0 auto; }
+.wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+}
 
-.page-head { margin-bottom: 1.75rem; }
+.page-head {
+  margin-bottom: 1.75rem;
+}
 .eyebrow {
   margin: 0 0 0.7rem;
   color: #198044;
@@ -313,7 +373,7 @@ function submitToPayfast(url, params) {
 }
 .page-sub {
   margin: 0;
-  color: #718077;
+  color: #4f5f57;
   font-size: 1.05rem;
 }
 
@@ -332,10 +392,11 @@ function submitToPayfast(url, params) {
   gap: 0.6rem;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #8a978f;
+  color: #5c6b64;
 }
 .node {
-  width: 30px; height: 30px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -343,16 +404,20 @@ function submitToPayfast(url, params) {
   font-weight: 800;
   background: #fff;
   border: 2px solid #e0e8e2;
-  color: #8a978f;
+  color: #5c6b64;
   flex-shrink: 0;
 }
-.step.done { color: #198044; }
+.step.done {
+  color: #198044;
+}
 .step.done .node {
   border-color: #198044;
   color: #198044;
   background: #e9f7ed;
 }
-.step.current { color: #173b27; }
+.step.current {
+  color: #173b27;
+}
 .step.current .node {
   background: #176b3a;
   color: #ffffff;
@@ -361,10 +426,13 @@ function submitToPayfast(url, params) {
 }
 .connector {
   display: block;
-  width: 48px; height: 2px;
+  width: 48px;
+  height: 2px;
   background: #e0e8e2;
 }
-.connector.done { background: #bfe3cc; }
+.connector.done {
+  background: #bfe3cc;
+}
 
 /* LAYOUT */
 .payment-layout {
@@ -373,7 +441,9 @@ function submitToPayfast(url, params) {
   gap: 1.75rem;
   align-items: start;
 }
-.form-column { min-width: 0; }
+.form-column {
+  min-width: 0;
+}
 
 /* PANELS */
 .panel {
@@ -395,7 +465,11 @@ function submitToPayfast(url, params) {
 }
 
 /* FIELDS */
-.field { display: grid; gap: 0.45rem; margin-bottom: 1rem; }
+.field {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
 .field label {
   font-size: 0.85rem;
   font-weight: 700;
@@ -410,17 +484,24 @@ function submitToPayfast(url, params) {
   font-size: 1rem;
   color: #294635;
   width: 100%;
-  transition: border-color 0.25s, box-shadow 0.25s;
+  transition:
+    border-color 0.25s,
+    box-shadow 0.25s;
   box-sizing: border-box;
 }
-.select { cursor: pointer; }
+.select {
+  cursor: pointer;
+}
 .field input:focus,
 .select:focus {
   border-color: #198044;
   box-shadow: 0 0 0 4px rgba(25, 128, 68, 0.08);
   outline: none;
 }
-.select option { background: #ffffff; color: #294635; }
+.select option {
+  background: #ffffff;
+  color: #294635;
+}
 
 .zone-quick {
   border-top: 1px dashed #dce7df;
@@ -428,13 +509,23 @@ function submitToPayfast(url, params) {
   margin-top: 0.5rem;
 }
 .zone-quick .row {
-  display: flex; justify-content: space-between;
-  padding: 0.4rem 0; font-size: 0.92rem; color: #66736b;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  font-size: 0.92rem;
+  color: #4f5f57;
 }
-.zone-quick .row span:last-child { font-weight: 700; color: #173b27; }
+.zone-quick .row span:last-child {
+  font-weight: 700;
+  color: #173b27;
+}
 
 /* METHOD OPTIONS */
-.method-list { display: grid; gap: 0.75rem; margin-bottom: 1.25rem; }
+.method-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
 .method-option {
   display: flex;
   align-items: center;
@@ -446,17 +537,37 @@ function submitToPayfast(url, params) {
   cursor: pointer;
   transition: all 0.25s ease;
 }
-.method-option:hover { border-color: #62b987; }
+.method-option:hover {
+  border-color: #62b987;
+}
 .method-option.active {
   border-color: #198044;
   background: #e9f7ed;
   box-shadow: 0 0 0 4px rgba(25, 128, 68, 0.08);
 }
-.method-option input { display: none; }
-.method-body { display: grid; gap: 0.15rem; flex: 1; min-width: 0; }
-.method-name { font-weight: 700; font-size: 0.98rem; color: #173b27; }
-.method-sub { font-size: 0.82rem; color: #718077; }
-.method-badges { display: flex; gap: 0.4rem; flex-shrink: 0; }
+.method-option input {
+  display: none;
+}
+.method-body {
+  display: grid;
+  gap: 0.15rem;
+  flex: 1;
+  min-width: 0;
+}
+.method-name {
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: #173b27;
+}
+.method-sub {
+  font-size: 0.82rem;
+  color: #4f5f57;
+}
+.method-badges {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
 .badge-card {
   padding: 0.25rem 0.55rem;
   border-radius: 6px;
@@ -465,8 +576,12 @@ function submitToPayfast(url, params) {
   letter-spacing: 0.03em;
   color: white;
 }
-.badge-card.visa { background: #1a1f71; }
-.badge-card.mc { background: #eb001b; }
+.badge-card.visa {
+  background: #1a1f71;
+}
+.badge-card.mc {
+  background: #eb001b;
+}
 .badge-bank {
   padding: 0.25rem 0.55rem;
   border-radius: 6px;
@@ -484,27 +599,48 @@ function submitToPayfast(url, params) {
   border-radius: 14px;
   margin-bottom: 1.25rem;
 }
-.gateway-info p { margin: 0; font-size: 0.88rem; color: #66736b; line-height: 1.6; }
+.gateway-info p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #4f5f57;
+  line-height: 1.6;
+}
 
-.error-text { margin: 0 0 1rem; color: #a33d3d; font-size: 0.9rem; font-weight: 600; }
+.error-text {
+  margin: 0 0 1rem;
+  color: #a33d3d;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
 
 .submit-btn {
-  width: 100%; padding: 1.05rem;
+  width: 100%;
+  padding: 1.05rem;
   color: #ffffff;
   background: #176b3a;
-  border: 0; border-radius: 12px;
-  font-weight: 800; font-size: 1.08rem;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1.08rem;
   cursor: pointer;
   box-shadow: 0 6px 26px rgba(23, 107, 58, 0.25);
   transition: all 0.25s ease;
 }
-.submit-btn:hover { transform: translateY(-2px); background: #1e6040; box-shadow: 0 10px 32px rgba(23, 107, 58, 0.3); }
-.submit-btn:disabled { opacity: 0.6; cursor: wait; transform: none; }
+.submit-btn:hover {
+  transform: translateY(-2px);
+  background: #1e6040;
+  box-shadow: 0 10px 32px rgba(23, 107, 58, 0.3);
+}
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+  transform: none;
+}
 
 .mandate {
   margin: 1.1rem 0 0;
   font-size: 0.78rem;
-  color: #8a978f;
+  color: #5c6b64;
   line-height: 1.55;
   text-align: center;
 }
@@ -524,8 +660,10 @@ function submitToPayfast(url, params) {
 }
 .panel-label {
   margin: 0 0 0.3rem;
-  font-size: 0.78rem; font-weight: 800;
-  text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: #198044;
 }
 .panel-amount {
@@ -535,34 +673,75 @@ function submitToPayfast(url, params) {
   letter-spacing: -0.03em;
   color: #173b27;
 }
-.panel-amount .currency { font-size: 1.5rem; font-weight: 700; margin-right: 0.1rem; }
-.panel-amount .period { font-size: 0.95rem; font-weight: 500; color: #718077; letter-spacing: 0; }
-.panel-zone { margin: 0.8rem 0 0; color: #66736b; font-size: 0.92rem; }
-.panel-context { margin: 0.3rem 0 0; color: #8a978f; font-size: 0.85rem; }
+.panel-amount .currency {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-right: 0.1rem;
+}
+.panel-amount .period {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #4f5f57;
+  letter-spacing: 0;
+}
+.panel-zone {
+  margin: 0.8rem 0 0;
+  color: #4f5f57;
+  font-size: 0.92rem;
+}
+.panel-context {
+  margin: 0.3rem 0 0;
+  color: #5c6b64;
+  font-size: 0.85rem;
+}
 
 .panel-divider {
-  height: 1px; margin: 1.4rem 0;
+  height: 1px;
+  margin: 1.4rem 0;
   background: #e6eee8;
 }
 
 .activation-row {
-  height: 6px; border-radius: 999px;
+  height: 6px;
+  border-radius: 999px;
   background: #e6eee8;
   overflow: hidden;
   margin: 0.5rem 0;
 }
 .activation-fill {
-  height: 100%; width: 60%;
+  height: 100%;
+  width: 60%;
   border-radius: 999px;
   background: linear-gradient(90deg, #198044, #3b9b68);
 }
-.panel-activation { margin: 0; font-size: 0.84rem; color: #66736b; }
+.panel-activation {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #4f5f57;
+}
 
-.panel-includes { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.65rem; }
-.panel-includes li { font-size: 0.92rem; color: #294635; }
+.panel-includes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+.panel-includes li {
+  font-size: 0.92rem;
+  color: #294635;
+}
 
-.panel-trust strong { display: block; font-size: 0.95rem; color: #173b27; }
-.panel-trust p { margin: 0; font-size: 0.8rem; color: #8a978f; }
+.panel-trust strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #173b27;
+}
+.panel-trust p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #5c6b64;
+}
 
 .panel-badge {
   margin-top: 1.4rem;
@@ -576,14 +755,30 @@ function submitToPayfast(url, params) {
 }
 
 /* STATES */
-.state-panel { text-align: center; padding: 3.5rem 1.5rem; }
-.state-panel h3 { margin: 0 0 0.5rem; font-size: 1.35rem; color: #173b27; }
-.state-panel p { margin: 0 0 1.75rem; }
-.soft { color: #66736b; }
+.state-panel {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+}
+.state-panel h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+  color: #173b27;
+}
+.state-panel p {
+  margin: 0 0 1.75rem;
+}
+.soft {
+  color: #4f5f57;
+}
 .check {
-  width: 72px; height: 72px; line-height: 72px; border-radius: 50%;
+  width: 72px;
+  height: 72px;
+  line-height: 72px;
+  border-radius: 50%;
   background: #176b3a;
-  color: #ffffff; font-size: 36px; font-weight: 800;
+  color: #ffffff;
+  font-size: 36px;
+  font-weight: 800;
   margin: 0 auto 1.25rem;
   box-shadow: 0 8px 24px rgba(23, 107, 58, 0.25);
 }
@@ -593,30 +788,56 @@ function submitToPayfast(url, params) {
   border-radius: 999px;
   background: #176b3a;
   color: #ffffff;
-  font-weight: 700; font-size: 1.02rem;
+  font-weight: 700;
+  font-size: 1.02rem;
   text-decoration: none;
   box-shadow: 0 6px 26px rgba(23, 107, 58, 0.25);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
-.cta:hover { transform: translateY(-2px); box-shadow: 0 12px 36px rgba(23, 107, 58, 0.3); }
+.cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 36px rgba(23, 107, 58, 0.3);
+}
 .spinner {
-  width: 42px; height: 42px; margin: 0 auto 1.25rem;
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 1.25rem;
   border: 4px solid #dcebe0;
   border-top-color: #198044;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 @media (max-width: 900px) {
-  .payment-layout { grid-template-columns: 1fr; }
-  .summary-panel { position: static; order: -1; border-left: 0; }
+  .payment-layout {
+    grid-template-columns: 1fr;
+  }
+  .summary-panel {
+    position: static;
+    order: -1;
+    border-left: 0;
+  }
 }
 @media (max-width: 600px) {
-  .steps { gap: 0.5rem; }
-  .connector { width: 24px; }
-  .method-badges { display: none; }
-  .panel { padding: 1.5rem 1.25rem; }
+  .steps {
+    gap: 0.5rem;
+  }
+  .connector {
+    width: 24px;
+  }
+  .method-badges {
+    display: none;
+  }
+  .panel {
+    padding: 1.5rem 1.25rem;
+  }
 }
 </style>

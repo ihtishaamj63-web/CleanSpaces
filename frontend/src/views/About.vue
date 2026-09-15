@@ -287,7 +287,7 @@
   margin: 0 0 24px;
   font-size: 1.05rem;
   line-height: 1.85;
-  color: #66736b;
+  color: #4f5f57;
 }
 
 .story-text p:last-child {
@@ -380,7 +380,7 @@
 .team-heading p {
   margin: 20px auto 0;
   max-width: 600px;
-  color: #68766e;
+  color: #4f5f57;
   line-height: 1.7;
 }
 
@@ -477,7 +477,7 @@
 .reviews-content p {
   max-width: 620px;
   margin: 22px auto 32px;
-  color: #68766e;
+  color: #4f5f57;
   line-height: 1.75;
 }
 

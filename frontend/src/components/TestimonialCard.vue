@@ -130,7 +130,7 @@ defineProps({
 }
 
 .reviewer-info span {
-  color: #849087;
+  color: #5c6b64;
   font-size: 12px;
 }
 

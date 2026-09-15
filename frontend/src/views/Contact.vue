@@ -307,7 +307,11 @@ const submitForm = async () => {
     form.message = "";
   } catch (error) {
     console.error("Contact form error:", error);
-    toastError("Message not sent", error.response?.data?.message || "Unable to send your message. Please try again.");
+    toastError(
+      "Message not sent",
+      error.response?.data?.message ||
+        "Unable to send your message. Please try again.",
+    );
   }
 };
 
@@ -427,7 +431,7 @@ const reportIssue = () => {
 }
 
 .section-heading p {
-  color: #66736b;
+  color: #4f5f57;
   font-size: 16px;
   line-height: 1.7;
 }
@@ -595,7 +599,7 @@ const reportIssue = () => {
 
 .form-heading p {
   margin: 0;
-  color: #718078;
+  color: #4f5f57;
   line-height: 1.6;
 }
 
@@ -764,7 +768,7 @@ const reportIssue = () => {
 .faq-heading p {
   max-width: 600px;
   margin: auto;
-  color: #718078;
+  color: #4f5f57;
   line-height: 1.7;
 }
 
@@ -837,7 +841,7 @@ const reportIssue = () => {
 
 .faq-answer p {
   margin: 0;
-  color: #718078;
+  color: #4f5f57;
   font-size: 14px;
   line-height: 1.8;
 }

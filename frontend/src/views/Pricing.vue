@@ -4,8 +4,8 @@
       <p class="eyebrow">Pricing</p>
       <h1>One street. One price.<br />Split across your block.</h1>
       <p class="hero-sub">
-        Zones are funded collectively — each household's share is set so the zone
-        is fully funded once 60% of households are contributing.
+        Zones are funded collectively — each household's share is set so the
+        zone is fully funded once 60% of households are contributing.
       </p>
     </header>
 
@@ -51,21 +51,34 @@
             <span class="explain-num">01</span>
             <div>
               <h3>Your zone picks a plan</h3>
-              <p>A single street (Small) up to a neighbourhood section (Large) — sized to what your community needs. Households include backyard dwellings and flats, so streets hold more contributors than they look.</p>
+              <p>
+                A single street (Small) up to a neighbourhood section (Large) —
+                sized to what your community needs. Households include backyard
+                dwellings and flats, so streets hold more contributors than they
+                look.
+              </p>
             </div>
           </div>
           <div class="explain-row">
             <span class="explain-num">02</span>
             <div>
               <h3>The total is split</h3>
-              <p>Each household's share is set so the zone is fully funded at 60% — roughly R105 each on a 65-household street. Nobody carries it alone.</p>
+              <p>
+                Each household's share is set so the zone is fully funded at 60%
+                — roughly R105 each on a 65-household street. Nobody carries it
+                alone.
+              </p>
             </div>
           </div>
           <div class="explain-row">
             <span class="explain-num">03</span>
             <div>
               <h3>60% unlocks weekly cleanups</h3>
-              <p>Once six in ten households are contributing, the zone is fully funded and the crew schedule starts. You watch it happen live on your dashboard.</p>
+              <p>
+                Once six in ten households are contributing, the zone is fully
+                funded and the crew schedule starts. You watch it happen live on
+                your dashboard.
+              </p>
             </div>
           </div>
         </div>
@@ -91,70 +104,70 @@
 // consistent with the backend's config/plans.js and the proposal document.
 const plans = [
   {
-    name: 'Small Zone',
-    fit: 'Single street · 50–80 households',
-    range: 'R3,500 – R4,500',
-    share: '±R85 – R130',
+    name: "Small Zone",
+    fit: "Single street · 50–80 households",
+    range: "R3,500 – R4,500",
+    share: "±R85 – R130",
     includes: [
-      'Weekly scheduled cleanup',
-      'Hazardous waste disposal',
-      'Sanitisation of public spaces',
-      'Photo proof of every cleanup',
-      'Community progress dashboard'
+      "Weekly scheduled cleanup",
+      "Hazardous waste disposal",
+      "Sanitisation of public spaces",
+      "Photo proof of every cleanup",
+      "Community progress dashboard",
     ],
-    featured: false
+    featured: false,
   },
   {
-    name: 'Medium Zone',
-    fit: '2–3 streets · 150–200 households',
-    range: 'R6,500 – R8,000',
-    share: '±R60 – R80',
+    name: "Medium Zone",
+    fit: "2–3 streets · 150–200 households",
+    range: "R6,500 – R8,000",
+    share: "±R60 – R80",
     includes: [
-      'Weekly scheduled cleanup',
-      'Hazardous waste disposal',
-      'Sanitisation of public spaces',
-      'Photo proof of every cleanup',
-      'Community progress dashboard',
-      'Priority crew scheduling'
+      "Weekly scheduled cleanup",
+      "Hazardous waste disposal",
+      "Sanitisation of public spaces",
+      "Photo proof of every cleanup",
+      "Community progress dashboard",
+      "Priority crew scheduling",
     ],
-    featured: true
+    featured: true,
   },
   {
-    name: 'Large Zone',
-    fit: 'Neighbourhood section · 300+ households',
-    range: 'R10,000 – R13,000',
-    share: 'from R64',
+    name: "Large Zone",
+    fit: "Neighbourhood section · 300+ households",
+    range: "R10,000 – R13,000",
+    share: "from R64",
     includes: [
-      'Weekly scheduled cleanup',
-      'Hazardous waste disposal',
-      'Sanitisation of public spaces',
-      'Photo proof of every cleanup',
-      'Community progress dashboard',
-      'Priority crew scheduling',
-      'Quarterly deep-clean included'
+      "Weekly scheduled cleanup",
+      "Hazardous waste disposal",
+      "Sanitisation of public spaces",
+      "Photo proof of every cleanup",
+      "Community progress dashboard",
+      "Priority crew scheduling",
+      "Quarterly deep-clean included",
     ],
-    featured: false
-  }
-]
+    featured: false,
+  },
+];
 
 const faqs = [
   {
-    q: 'Why is it so cheap per household?',
-    a: 'Because the zone total is split across the households needed to reach the 60% activation threshold — and Cape Flats streets hold more households than they look, once backyard dwellings and flats are counted. A private cleanup contractor charges R500+ per household; pooling brings your share down to a fraction of that.'
+    q: "Why is it so cheap per household?",
+    a: "Because the zone total is split across the households needed to reach the 60% activation threshold — and Cape Flats streets hold more households than they look, once backyard dwellings and flats are counted. A private cleanup contractor charges R500+ per household; pooling brings your share down to a fraction of that.",
   },
   {
-    q: 'What happens before the zone reaches 60%?',
-    a: 'No money is spent and no cleanup is scheduled until your zone hits the 60% activation threshold. You can watch the progress live on your dashboard — and at 60%, your zone is fully funded for the month.'
+    q: "What happens before the zone reaches 60%?",
+    a: "No money is spent and no cleanup is scheduled until your zone hits the 60% activation threshold. You can watch the progress live on your dashboard — and at 60%, your zone is fully funded for the month.",
   },
   {
-    q: 'What payment methods do you accept?',
-    a: 'Card and EFT via PayFast. You\'ll never enter card details on our site — payments are processed on PayFast\'s PCI DSS Level 1 certified page.'
+    q: "What payment methods do you accept?",
+    a: "Card and EFT via PayFast. You'll never enter card details on our site — payments are processed on PayFast's PCI DSS Level 1 certified page.",
   },
   {
-    q: 'Can we cancel?',
-    a: 'Yes — contributions are month-to-month with no lock-in. Your zone simply pauses if participation drops below the threshold.'
-  }
-]
+    q: "Can we cancel?",
+    a: "Yes — contributions are month-to-month with no lock-in. Your zone simply pauses if participation drops below the threshold.",
+  },
+];
 </script>
 
 <style scoped>
@@ -218,7 +231,7 @@ const faqs = [
 .hero-sub {
   position: relative;
   margin: 22px auto 0;
-  color: #5e7165;
+  color: #4f5f57;
   font-size: 17px;
   line-height: 1.7;
   max-width: 56ch;
@@ -232,9 +245,15 @@ const faqs = [
   display: grid;
   gap: 70px;
 }
-.block { animation: rise .65s cubic-bezier(.22, 1, .36, 1) both; }
-.block:nth-child(2) { animation-delay: .08s; }
-.block:nth-child(3) { animation-delay: .16s; }
+.block {
+  animation: rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.block:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.block:nth-child(3) {
+  animation-delay: 0.16s;
+}
 
 .block-title {
   margin: 0 0 32px;
@@ -245,14 +264,18 @@ const faqs = [
   text-transform: uppercase;
 }
 
-.rule { border: 0; border-top: 1px solid #e6eee8; margin: 0; }
+.rule {
+  border: 0;
+  border-top: 1px solid #e6eee8;
+  margin: 0;
+}
 
 /* PLAN CARDS — white cards on the light background */
 .plans {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 24px;
-  animation: rise .65s cubic-bezier(.22, 1, .36, 1) both;
+  animation: rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .plan {
@@ -264,7 +287,10 @@ const faqs = [
   box-shadow: 0 8px 22px rgba(31, 89, 54, 0.05);
   display: flex;
   flex-direction: column;
-  transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease;
+  transition:
+    transform 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 .plan:hover {
   transform: translateY(-5px);
@@ -282,16 +308,17 @@ const faqs = [
 
 .plan-flag {
   position: absolute;
-  top: -12px; left: 50%;
+  top: -12px;
+  left: 50%;
   transform: translateX(-50%);
   margin: 0;
-  padding: .28rem 1rem;
+  padding: 0.28rem 1rem;
   border-radius: 999px;
   background: #176b3a;
   color: #ffffff;
-  font-size: .72rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: .06em;
+  letter-spacing: 0.06em;
   white-space: nowrap;
   box-shadow: 0 4px 14px rgba(23, 107, 58, 0.3);
 }
@@ -303,12 +330,14 @@ const faqs = [
   color: #173b27;
 }
 .plan-fit {
-  margin: .5rem 0 0;
-  color: #718077;
-  font-size: .88rem;
+  margin: 0.5rem 0 0;
+  color: #4f5f57;
+  font-size: 0.88rem;
 }
 
-.plan-price { margin: 2rem 0 0; }
+.plan-price {
+  margin: 2rem 0 0;
+}
 .plan-total {
   display: block;
   font-size: 2.2rem;
@@ -318,14 +347,14 @@ const faqs = [
 }
 .plan-period {
   display: block;
-  color: #8a978f;
-  font-size: .82rem;
-  margin-top: .2rem;
+  color: #5c6b64;
+  font-size: 0.82rem;
+  margin-top: 0.2rem;
 }
 
 .plan-share {
   margin: 1.25rem 0 0;
-  padding: .9rem 1.1rem;
+  padding: 0.9rem 1.1rem;
   border-radius: 12px;
   background: #e9f7ed;
   border: 1px solid #bfe3cc;
@@ -337,9 +366,9 @@ const faqs = [
 }
 .share-label {
   display: block;
-  color: #66736b;
-  font-size: .78rem;
-  margin-top: .15rem;
+  color: #4f5f57;
+  font-size: 0.78rem;
+  margin-top: 0.15rem;
 }
 
 .plan-rule {
@@ -353,17 +382,17 @@ const faqs = [
   margin: 0;
   padding: 0;
   display: grid;
-  gap: .7rem;
+  gap: 0.7rem;
   flex: 1;
 }
 .plan-includes li {
-  font-size: .92rem;
+  font-size: 0.92rem;
   color: #294635;
   padding-left: 1.5rem;
   position: relative;
 }
 .plan-includes li::before {
-  content: '✓';
+  content: "✓";
   position: absolute;
   left: 0;
   color: #198044;
@@ -373,13 +402,13 @@ const faqs = [
 .plan-cta {
   display: block;
   margin-top: 1.75rem;
-  padding: .95rem 0;
+  padding: 0.95rem 0;
   border-radius: 999px;
   text-align: center;
   font-weight: 700;
-  font-size: .98rem;
+  font-size: 0.98rem;
   text-decoration: none;
-  transition: all .25s ease;
+  transition: all 0.25s ease;
 }
 .plan.featured .plan-cta {
   background: #176b3a;
@@ -401,7 +430,10 @@ const faqs = [
 }
 
 /* HOW THE PRICE WORKS */
-.explain { display: grid; gap: 2.25rem; }
+.explain {
+  display: grid;
+  gap: 2.25rem;
+}
 .explain-row {
   display: flex;
   gap: 1.5rem;
@@ -417,26 +449,31 @@ const faqs = [
   line-height: 1.3;
 }
 .explain-row h3 {
-  margin: 0 0 .3rem;
+  margin: 0 0 0.3rem;
   font-size: 1.15rem;
   font-weight: 700;
   color: #173b27;
 }
 .explain-row p {
   margin: 0;
-  color: #66736b;
-  font-size: .98rem;
+  color: #4f5f57;
+  font-size: 0.98rem;
   max-width: 64ch;
   line-height: 1.7;
 }
 
 /* FAQ — white cards */
-.faq { display: grid; gap: .75rem; }
+.faq {
+  display: grid;
+  gap: 0.75rem;
+}
 .faq details {
   border: 1px solid #e0e8e2;
   border-radius: 14px;
   padding: 1.1rem 1.4rem;
-  transition: border-color .25s ease, box-shadow .25s ease;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
   background: #ffffff;
 }
 .faq details[open] {
@@ -452,32 +489,50 @@ const faqs = [
   position: relative;
   padding-right: 2rem;
 }
-.faq summary::-webkit-details-marker { display: none; }
+.faq summary::-webkit-details-marker {
+  display: none;
+}
 .faq summary::after {
-  content: '+';
+  content: "+";
   position: absolute;
   right: 0;
   color: #198044;
   font-weight: 800;
   font-size: 1.2rem;
-  transition: transform .25s ease;
+  transition: transform 0.25s ease;
 }
-.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details[open] summary::after {
+  transform: rotate(45deg);
+}
 .faq details p {
-  margin: .8rem 0 0;
-  color: #66736b;
-  font-size: .95rem;
+  margin: 0.8rem 0 0;
+  color: #4f5f57;
+  font-size: 0.95rem;
   line-height: 1.7;
 }
 
 @keyframes rise {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (max-width: 640px) {
-  .hero { padding: 70px 7% 55px; }
-  .rail { gap: 50px; padding-top: 55px; }
-  .explain-row { flex-direction: column; gap: .5rem; }
+  .hero {
+    padding: 70px 7% 55px;
+  }
+  .rail {
+    gap: 50px;
+    padding-top: 55px;
+  }
+  .explain-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 }
 </style>

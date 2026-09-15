@@ -368,7 +368,8 @@ const submitReview = async () => {
     reviewForm.rating = 0;
   } catch (error) {
     console.error("Review submission error:", error);
-    formError.value = error.response?.data?.message || "Unable to submit your review.";
+    formError.value =
+      error.response?.data?.message || "Unable to submit your review.";
   } finally {
     submitting.value = false;
   }
@@ -441,7 +442,7 @@ onMounted(() => {
 .hero-content p {
   max-width: 560px;
   margin: 28px 0;
-  color: #5e7165;
+  color: #4f5f57;
   font-size: 18px;
   line-height: 1.7;
 }
@@ -579,7 +580,7 @@ main {
 
 .section-heading p {
   margin: 0;
-  color: #718077;
+  color: #4f5f57;
   line-height: 1.7;
 }
 
@@ -627,7 +628,7 @@ main {
 }
 
 .rating-count {
-  color: #8a978f;
+  color: #5c6b64;
   font-size: 13px;
 }
 
@@ -662,7 +663,7 @@ main {
 
 .rating-message p {
   margin: 5px 0 0;
-  color: #78857d;
+  color: #4f5f57;
   font-size: 14px;
 }
 
@@ -787,14 +788,14 @@ main {
 
 .cleanup-info p {
   margin: 0;
-  color: #78857d;
+  color: #4f5f57;
   font-size: 13px;
   line-height: 1.5;
 }
 
 .cleanup-date {
   flex-shrink: 0;
-  color: #8a978f;
+  color: #5c6b64;
   font-size: 12px;
 }
 
@@ -845,7 +846,7 @@ main {
 }
 
 .form-intro > p {
-  color: #68776e;
+  color: #4f5f57;
   line-height: 1.7;
 }
 
@@ -866,7 +867,7 @@ main {
 
 .form-note p {
   margin: 0;
-  color: #65746b;
+  color: #5c6b64;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -948,7 +949,7 @@ main {
 .rating-hint {
   display: block;
   margin-top: 8px;
-  color: #8a978f;
+  color: #5c6b64;
   font-size: 12px;
 }
 
@@ -956,7 +957,7 @@ main {
   position: absolute;
   right: 12px;
   bottom: 10px;
-  color: #9aa59f;
+  color: #5c6b64;
   font-size: 11px;
 }
 
