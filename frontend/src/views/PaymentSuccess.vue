@@ -3,7 +3,7 @@
     <div class="auth-card">
       <div class="logo-section">
         <img
-          src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png"
+          src="https://i.ibb.co/Z6zmRmq5/CS-logo.png"
           alt="CleanSpaces Logo"
           class="logo"
         />

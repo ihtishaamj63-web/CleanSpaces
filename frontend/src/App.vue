@@ -3,7 +3,11 @@
   <div v-if="!isAdmin" class="nav-shell">
     <header class="nav" :class="{ scrolled }">
       <router-link to="/" class="brand">
-        <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="CleanSpaces" class="logo" />
+        <img
+          src="https://i.ibb.co/Z6zmRmq5/CS-logo.png"
+          alt="CleanSpaces"
+          class="logo"
+        />
         <span class="brand-name">CLEAN<em>SPACES</em></span>
       </router-link>
 
@@ -17,16 +21,22 @@
 
       <div class="actions">
         <template v-if="role === 'admin'">
-          <router-link to="/admin/dashboard" class="nav-btn solid">Admin</router-link>
+          <router-link to="/admin/dashboard" class="nav-btn solid"
+            >Admin</router-link
+          >
           <a href="#" class="nav-btn ghost" @click.prevent="logout">Log Out</a>
         </template>
         <template v-else-if="token">
-          <router-link to="/resident/dashboard" class="nav-btn solid">My Zone</router-link>
+          <router-link to="/resident/dashboard" class="nav-btn solid"
+            >My Zone</router-link
+          >
           <a href="#" class="nav-btn ghost" @click.prevent="logout">Log Out</a>
         </template>
         <template v-else>
           <router-link to="/login" class="nav-btn ghost">Log In</router-link>
-          <router-link to="/signup" class="nav-btn solid">Get Started</router-link>
+          <router-link to="/signup" class="nav-btn solid"
+            >Get Started</router-link
+          >
         </template>
       </div>
     </header>
@@ -36,8 +46,14 @@
   <header v-else class="nav-shell">
     <div class="nav" :class="{ scrolled }">
       <router-link to="/admin/dashboard" class="brand">
-        <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="CleanSpaces" class="logo" />
-        <span class="brand-name">CLEAN<em>SPACES</em><small class="admin-badge">Admin</small></span>
+        <img
+          src="https://i.ibb.co/Z6zmRmq5/CS-logo.png"
+          alt="CleanSpaces"
+          class="logo"
+        />
+        <span class="brand-name"
+          >CLEAN<em>SPACES</em><small class="admin-badge">Admin</small></span
+        >
       </router-link>
 
       <div class="actions">
@@ -60,7 +76,11 @@
   <footer v-if="!isAdmin" class="footer">
     <div class="footer-inner">
       <div class="footer-brand">
-        <img src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png" alt="" class="footer-logo" />
+        <img
+          src="https://i.ibb.co/Z6zmRmq5/CS-logo.png"
+          alt=""
+          class="footer-logo"
+        />
         <span class="brand-name small">CLEAN<em>SPACES</em></span>
       </div>
       <p>Community-powered cleanup service</p>
@@ -74,49 +94,49 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
-const router = useRouter()
-const route = useRoute()
-const token = ref(localStorage.getItem('token'))
-const role = ref(localStorage.getItem('role'))
-const scrolled = ref(false)
+const router = useRouter();
+const route = useRoute();
+const token = ref(localStorage.getItem("token"));
+const role = ref(localStorage.getItem("role"));
+const scrolled = ref(false);
 
 // Admin routes get their own nav content + light background, no footer
-const isAdmin = computed(() => route.path.startsWith('/admin'))
+const isAdmin = computed(() => route.path.startsWith("/admin"));
 
 // Keeps the nav in sync with login/logout happening anywhere
 // (same tab via route changes, other tabs via the storage event).
 function syncSession() {
-  token.value = localStorage.getItem('token')
-  role.value = localStorage.getItem('role')
+  token.value = localStorage.getItem("token");
+  role.value = localStorage.getItem("role");
 }
 
 function onScroll() {
-  scrolled.value = window.scrollY > 12
+  scrolled.value = window.scrollY > 12;
 }
 
 function logout() {
   // clear the full session, not just the token
-  localStorage.removeItem('token')
-  localStorage.removeItem('role')
-  localStorage.removeItem('user')
-  token.value = null
-  role.value = null
-  router.push('/')
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  localStorage.removeItem("user");
+  token.value = null;
+  role.value = null;
+  router.push("/");
 }
 
-onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
+onMounted(() => window.addEventListener("scroll", onScroll, { passive: true }));
 onMounted(() => {
-  window.addEventListener('storage', syncSession)
-  syncSession()
-})
-watch(() => route.fullPath, syncSession)
+  window.addEventListener("storage", syncSession);
+  syncSession();
+});
+watch(() => route.fullPath, syncSession);
 onUnmounted(() => {
-  window.removeEventListener('scroll', onScroll)
-  window.removeEventListener('storage', syncSession)
-})
+  window.removeEventListener("scroll", onScroll);
+  window.removeEventListener("storage", syncSession);
+});
 </script>
 
 <style scoped>
@@ -141,7 +161,10 @@ onUnmounted(() => {
   backdrop-filter: blur(16px) saturate(1.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
-  transition: padding 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    padding 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .nav.scrolled {
@@ -171,7 +194,7 @@ onUnmounted(() => {
   transform: rotate(-8deg) scale(1.06);
 }
 .brand-name {
-  font-family: 'Sora', sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 1.18rem;
   font-weight: 800;
   letter-spacing: 0.01em;
@@ -210,7 +233,9 @@ onUnmounted(() => {
   font-weight: 500;
   padding: 8px 14px;
   border-radius: 10px;
-  transition: color 0.2s, background 0.2s;
+  transition:
+    color 0.2s,
+    background 0.2s;
 }
 .links a:hover {
   color: #f4f6f5;
@@ -221,7 +246,7 @@ onUnmounted(() => {
   font-weight: 600;
 }
 .links a.router-link-active::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 3px;
   left: 50%;
@@ -242,7 +267,7 @@ onUnmounted(() => {
   display: inline-block;
   padding: 9px 20px;
   border-radius: 999px;
-  font-family: 'Sora', sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 0.86rem;
   font-weight: 700;
   text-decoration: none;
@@ -341,13 +366,30 @@ onUnmounted(() => {
 }
 
 @media (max-width: 900px) {
-  .links { order: 3; width: 100%; justify-content: center; }
-  .nav { flex-wrap: wrap; gap: 0.75rem; }
-  .actions { margin-left: auto; }
+  .links {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+  .nav {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .actions {
+    margin-left: auto;
+  }
 }
 @media (max-width: 600px) {
-  .brand-name { display: none; }
-  .links a { padding: 7px 10px; font-size: 0.85rem; }
-  .nav-btn { padding: 8px 14px; font-size: 0.8rem; }
+  .brand-name {
+    display: none;
+  }
+  .links a {
+    padding: 7px 10px;
+    font-size: 0.85rem;
+  }
+  .nav-btn {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+  }
 }
 </style>

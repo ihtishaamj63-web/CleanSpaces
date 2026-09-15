@@ -4,7 +4,7 @@
       <div class="brand-header">
         <div class="logo-wrapper">
           <img
-            src="https://i.ibb.co/RpJFKCJX/cleanspaces-removebg-preview.png"
+            src="https://i.ibb.co/Z6zmRmq5/CS-logo.png"
             alt="CleanSpaces"
             class="logo"
           />
@@ -34,9 +34,14 @@
         <div class="error-icon">⛔</div>
         <p class="error-title">Invalid or Expired Link</p>
         <p class="error-description">
-          {{ errorMessage || 'This password reset link is invalid or has expired.' }}
+          {{
+            errorMessage ||
+            "This password reset link is invalid or has expired."
+          }}
         </p>
-        <router-link class="btn-primary" to="/login">Request New Link</router-link>
+        <router-link class="btn-primary" to="/login"
+          >Request New Link</router-link
+        >
       </div>
 
       <!-- Reset form -->
@@ -46,10 +51,10 @@
             {{ getInitials(userData.name || userData.email) }}
           </div>
           <div class="user-details">
-            <p class="user-name">{{ userData.name || 'User' }}</p>
+            <p class="user-name">{{ userData.name || "User" }}</p>
             <p class="user-email">{{ userData.email }}</p>
             <p class="user-role" :class="userData.role">
-              {{ userData.role === 'admin' ? 'Administrator' : 'Resident' }}
+              {{ userData.role === "admin" ? "Administrator" : "Resident" }}
             </p>
           </div>
         </div>
@@ -72,11 +77,13 @@
                 class="toggle-password"
                 @click="showNewPassword = !showNewPassword"
               >
-                {{ showNewPassword ? '🙈' : '👁️' }}
+                {{ showNewPassword ? "🙈" : "👁️" }}
               </button>
             </div>
             <div class="password-requirements">
-              <span :class="{ met: password.length >= 8 }">✓ At least 8 characters</span>
+              <span :class="{ met: password.length >= 8 }"
+                >✓ At least 8 characters</span
+              >
               <span :class="{ met: hasUppercase }">✓ Uppercase letter</span>
               <span :class="{ met: hasLowercase }">✓ Lowercase letter</span>
               <span :class="{ met: hasNumber }">✓ Number</span>
@@ -100,7 +107,7 @@
                 class="toggle-password"
                 @click="showConfirmPassword = !showConfirmPassword"
               >
-                {{ showConfirmPassword ? '🙈' : '👁️' }}
+                {{ showConfirmPassword ? "🙈" : "👁️" }}
               </button>
             </div>
           </div>
@@ -115,7 +122,7 @@
             class="btn-primary"
             :disabled="isLoading || !isFormValid"
           >
-            {{ isLoading ? 'Resetting…' : 'Reset Password' }}
+            {{ isLoading ? "Resetting…" : "Reset Password" }}
           </button>
 
           <p class="footer-text">
@@ -128,7 +135,10 @@
       <div v-else-if="viewMode === 'success'" class="success-container">
         <div class="success-icon">✅</div>
         <h3>Password Reset Successful!</h3>
-        <p>Your password has been reset successfully. You can now log in with your new password.</p>
+        <p>
+          Your password has been reset successfully. You can now log in with
+          your new password.
+        </p>
         <router-link class="btn-primary" to="/login">Go to Login</router-link>
       </div>
     </div>
@@ -136,43 +146,46 @@
 </template>
 
 <script>
-import api from '../api.js'
+import api from "../api.js";
 
 export default {
-  name: 'ResetPasswordPage',
+  name: "ResetPasswordPage",
 
   data() {
     return {
-      token: '',
+      token: "",
       isVerifying: true,
       isTokenValid: false,
       userData: null,
-      password: '',
-      confirmPassword: '',
+      password: "",
+      confirmPassword: "",
       isLoading: false,
-      errorMessage: '',
-      viewMode: 'form', // 'form' or 'success'
+      errorMessage: "",
+      viewMode: "form", // 'form' or 'success'
       showNewPassword: false,
-      showConfirmPassword: false
-    }
+      showConfirmPassword: false,
+    };
   },
 
   computed: {
     /** Do the two password fields disagree? */
     passwordMismatch() {
-      return this.password !== this.confirmPassword && this.confirmPassword.length > 0
+      return (
+        this.password !== this.confirmPassword &&
+        this.confirmPassword.length > 0
+      );
     },
 
     hasUppercase() {
-      return /[A-Z]/.test(this.password)
+      return /[A-Z]/.test(this.password);
     },
 
     hasLowercase() {
-      return /[a-z]/.test(this.password)
+      return /[a-z]/.test(this.password);
     },
 
     hasNumber() {
-      return /[0-9]/.test(this.password)
+      return /[0-9]/.test(this.password);
     },
 
     /** All password rules satisfied and both fields match? */
@@ -184,102 +197,103 @@ export default {
         this.hasUppercase &&
         this.hasLowercase &&
         this.hasNumber
-      )
-    }
+      );
+    },
   },
 
   async created() {
     // Pull the token out of ?token=... in the URL.
-    this.token = this.$route.query.token || ''
+    this.token = this.$route.query.token || "";
 
     if (this.token) {
-      await this.verifyToken()
+      await this.verifyToken();
     } else {
-      this.isVerifying = false
-      this.isTokenValid = false
-      this.errorMessage = 'No reset token found in the URL. Please use the link from your email.'
+      this.isVerifying = false;
+      this.isTokenValid = false;
+      this.errorMessage =
+        "No reset token found in the URL. Please use the link from your email.";
     }
   },
 
   methods: {
     /** First letters of the user's name, for the avatar circle. */
     getInitials(name) {
-      if (!name) return 'U'
+      if (!name) return "U";
       return name
-        .split(' ')
+        .split(" ")
         .map((word) => word[0])
-        .join('')
+        .join("")
         .toUpperCase()
-        .slice(0, 2)
+        .slice(0, 2);
     },
 
     /** Ask the server whether this token is still valid. */
     async verifyToken() {
-      this.isVerifying = true
-      this.errorMessage = ''
+      this.isVerifying = true;
+      this.errorMessage = "";
 
       try {
-        const { data } = await api.post('/auth/verify-reset-token', {
-          token: this.token
-        })
+        const { data } = await api.post("/auth/verify-reset-token", {
+          token: this.token,
+        });
 
         if (!data.user || !data.valid) {
-          throw new Error('Invalid response from server.')
+          throw new Error("Invalid response from server.");
         }
 
-        this.isTokenValid = true
-        this.userData = data.user
-        this.viewMode = 'form'
+        this.isTokenValid = true;
+        this.userData = data.user;
+        this.viewMode = "form";
       } catch (error) {
-        this.isTokenValid = false
-        this.userData = null
+        this.isTokenValid = false;
+        this.userData = null;
         this.errorMessage =
           error.response?.data?.message ||
-          'The reset link is invalid or has expired.'
+          "The reset link is invalid or has expired.";
       } finally {
-        this.isVerifying = false
+        this.isVerifying = false;
       }
     },
 
     /** Submit the new password to the server. */
     async handleReset() {
-      this.errorMessage = ''
+      this.errorMessage = "";
 
       if (this.password !== this.confirmPassword) {
-        this.errorMessage = 'Passwords do not match. Please try again.'
-        return
+        this.errorMessage = "Passwords do not match. Please try again.";
+        return;
       }
 
       if (!this.isFormValid) {
-        this.errorMessage = 'Please meet all password requirements.'
-        return
+        this.errorMessage = "Please meet all password requirements.";
+        return;
       }
 
-      this.isLoading = true
+      this.isLoading = true;
 
       try {
-        await api.post('/auth/reset-password', {
+        await api.post("/auth/reset-password", {
           token: this.token,
-          password: this.password
-        })
+          password: this.password,
+        });
 
-        this.viewMode = 'success'
-        this.password = ''
-        this.confirmPassword = ''
+        this.viewMode = "success";
+        this.password = "";
+        this.confirmPassword = "";
       } catch (error) {
         this.errorMessage =
           error.response?.data?.message ||
-          'Something went wrong. Please try again.'
+          "Something went wrong. Please try again.";
 
-        if (error.response?.data?.message?.toLowerCase().includes('token')) {
-          this.isTokenValid = false
+        if (error.response?.data?.message?.toLowerCase().includes("token")) {
+          this.isTokenValid = false;
         }
       } finally {
-        this.isLoading = false
+        this.isLoading = false;
       }
-    }
-  }
-}
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -298,7 +312,7 @@ export default {
   padding: 2.8rem 2.5rem;
   background: #12332d;
   border-radius: 28px;
-  box-shadow: 0 30px 60px rgba(10, 24, 20, 0.40);
+  box-shadow: 0 30px 60px rgba(10, 24, 20, 0.4);
   color: #ffffff;
 }
 
@@ -318,7 +332,7 @@ export default {
   background: #fff;
   border-radius: 50%;
   padding: 6px;
-  box-shadow: 0 0 0 3px rgba(124, 179, 66, 0.30);
+  box-shadow: 0 0 0 3px rgba(124, 179, 66, 0.3);
 }
 h1 {
   margin: 0 0 0.3rem;
@@ -344,8 +358,12 @@ h1 {
   animation: spin 1s linear infinite;
 }
 @keyframes spin {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .user-info {
@@ -483,7 +501,9 @@ h1 {
   text-align: center;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
 }
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
