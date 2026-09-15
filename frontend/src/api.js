@@ -1,7 +1,7 @@
 import axios from 'axios'
 
-// All requests go through the Vite proxy (/api → backend), so the app works
-// in dev and behind any reverse proxy in production without config changes.
+// In dev, requests go through the Vite proxy (/api → localhost:5000).
+// In production, VITE_API_BASE_URL points at the deployed Railway backend.
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api'
 })
@@ -15,8 +15,8 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Krishendree's improvement: when a token expires or is rejected, clear the
-// stale session instead of leaving the user in a phantom logged-in state.
+// When a token expires or is rejected, clear the stale session instead of
+// leaving the user in a phantom logged-in state.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
