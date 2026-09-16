@@ -3,11 +3,28 @@ import { perHouseholdAmount } from '../config/plans.js'
 
 const plans = new Set(['small', 'medium', 'large'])
 
+// Household caps per plan — mirrors the frontend validation
+const PLAN_LIMITS = { small: 120, medium: 300, large: 2000 }
+
 export async function registerZone(req, res) {
   const { name, neighborhood, households, plan_type, contact_name, contact_phone } = req.body
   const householdCount = Number(households)
   if (![name, neighborhood, plan_type, contact_name, contact_phone].every((value) => String(value || '').trim()) || !Number.isInteger(householdCount) || householdCount < 1 || !plans.has(plan_type)) {
     return res.status(400).json({ message: 'Please provide a zone name, suburb, household count, plan and contact details.' })
+  }
+
+  // Plan-cap enforcement (server-side — the client check is UX only)
+  if (householdCount > PLAN_LIMITS[plan_type]) {
+    return res.status(400).json({ message: `A ${plan_type} zone supports up to ${PLAN_LIMITS[plan_type]} households. Please choose a larger plan.` })
+  }
+
+  // Duplicate-zone spam guard: same name + suburb already awaiting review
+  const [existing] = await pool.execute(
+    "SELECT id FROM zones WHERE name = ? AND neighborhood = ? AND status = 'pending'",
+    [name.trim(), neighborhood.trim()]
+  ).catch(() => [[]])
+  if (existing && existing.length) {
+    return res.status(409).json({ message: 'A zone with this name is already awaiting review. Our team will process it shortly.' })
   }
 
   try {
@@ -45,8 +62,7 @@ export async function zoneMap(req, res) {
         END AS cleanup_status
       FROM zones z ORDER BY z.name
     `)
-    // Per-household share from the single pricing source (config/plans.js) —
-    // set so the zone is fully funded at the 60% activation threshold.
+    // Per-household share from the single pricing source (config/plans.js)
     for (const z of zones) z.per_household_amount = perHouseholdAmount(z.plan_type, z.households)
     return res.json(zones)
   } catch {
@@ -66,7 +82,7 @@ export async function approveZone(req, res) {
 
 export async function rejectZone(req, res) {
   try {
-    const [result] = await pool.execute('DELETE FROM zones WHERE id = ? AND status = \'pending\'', [req.params.id])
+    const [result] = await pool.execute("DELETE FROM zones WHERE id = ? AND status = 'pending'", [req.params.id])
     if (!result.affectedRows) return res.status(404).json({ message: 'Pending zone not found.' })
     return res.json({ message: 'Zone registration rejected.' })
   } catch {
