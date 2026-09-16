@@ -88,6 +88,7 @@
         <router-link to="/pricing">Pricing</router-link>
         <router-link to="/reviews">Reviews</router-link>
         <router-link to="/contact">Contact</router-link>
+        <router-link to="/terms">Terms</router-link>
       </nav>
     </div>
   </footer>

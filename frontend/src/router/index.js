@@ -10,6 +10,7 @@ const router = createRouter({
     { path: '/reviews', name: 'reviews', component: () => import('../views/Reviews.vue') },
     { path: '/contact', name: 'contact', component: () => import('../views/Contact.vue') },
     { path: '/how-it-works', name: 'howItWorks', component: () => import('../views/HowItWorks.vue') },
+    { path: '/terms', name: 'terms', component: () => import('../views/Terms.vue') },
 
     // Auth pages
     { path: '/login', name: 'login', component: () => import('../views/Login.vue') },
