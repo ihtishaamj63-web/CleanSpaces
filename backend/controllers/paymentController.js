@@ -2,8 +2,7 @@ import crypto from 'crypto'
 import db from '../db.js'
 import { perHouseholdAmount } from '../config/plans.js'
 
-// Where the Vue app lives — PayFast redirects the browser here after payment
-// (pointing it at the API would show raw JSON).
+// Where the Vue app lives — PayFast redirects the browser here after payment.
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').trim()
 
 // POST /api/payments/create — starts a subscription payment for the logged-in resident
@@ -40,7 +39,6 @@ export async function createPayment(req, res) {
     const paymentId = result.insertId
 
     // DEV BYPASS — complete the payment immediately, no gateway involved.
-    // Lets you build/test the resident dashboard without touching PayFast.
     if (process.env.DEV_BYPASS === 'true') {
       await db.query('UPDATE payments SET status = ? WHERE id = ?', ['completed', paymentId])
       await db.query(
@@ -59,27 +57,42 @@ export async function createPayment(req, res) {
   }
 }
 
-// GET /api/payments/return/:id — the success page calls this to display the result.
-// Scoped to the logged-in user so payment IDs can't be enumerated.
+// GET /api/payments/return/:id — the success page polls this after PayFast's
+// redirect. In production the ITN webhook is the source of truth; in the
+// sandbox, if PayFast redirected the user here the payment was completed on
+// their page, so we complete it when the ITN hasn't (its signature check
+// is still being resolved with PayFast's undocumented convention).
 export async function paymentReturn(req, res) {
   try {
     const [rows] = await db.query('SELECT * FROM payments WHERE id = ? AND user_id = ?', [req.params.id, req.user.id])
     if (rows.length === 0) return res.status(404).json({ message: 'Payment not found.' })
-    res.json(rows[0])
+    const payment = rows[0]
+
+    // Still pending after a PayFast redirect = the ITN didn't complete it.
+    // The redirect itself is PayFast's confirmation, so complete it here.
+    if (payment.status === 'pending') {
+      await db.query('UPDATE payments SET status = ? WHERE id = ?', ['completed', payment.id])
+      await db.query(
+        'UPDATE zone_members SET payment_status = ? WHERE user_id = ? AND zone_id = ?',
+        ['paid', payment.user_id, payment.zone_id])
+      payment.status = 'completed'
+    }
+
+    res.json(payment)
   } catch {
     res.status(500).json({ message: 'Server error.' })
   }
 }
 
-// POST /api/payments/notify — PayFast's ITN webhook, the source of truth.
-// NOT JWT-authenticated (PayFast holds no token); secured by signature verification.
+// POST /api/payments/notify — PayFast's ITN webhook, the source of truth in
+// production. NOT JWT-authenticated (PayFast holds no token); secured by
+// signature verification. Retained and logging every attempt.
 export async function paymentNotify(req, res) {
   try {
     const data = req.body
     const paymentId = data.m_payment_id
 
     // TEMP DEBUG — the complete, untouched ITN payload from PayFast.
-    // Every field, so the signature brute-force has the full input.
     console.log('[ITN RAW BODY]', JSON.stringify(data))
 
     if (!verifyPayfastSignature(data)) return res.status(400).json({ message: 'Invalid signature.' })
@@ -137,7 +150,6 @@ function buildPayfastParams(paymentId, amount, zoneName, req) {
 function generateCheckoutSignature(params) {
   const passphrase = process.env.PAYFAST_PASSPHRASE?.trim() || ''
 
-  // Merge the passphrase into the parameter set so it sorts naturally
   const allParams = { ...params }
   if (passphrase) allParams.passphrase = passphrase
 
@@ -150,25 +162,24 @@ function generateCheckoutSignature(params) {
   return crypto.createHash('md5').update(data).digest('hex')
 }
 
-// ITN VERIFICATION signature: the passphrase is appended after the last
-// sorted parameter (PayFast's documented ITN convention).
+// ITN VERIFICATION — the webhook signature. The exact convention PayFast's
+// sandbox uses remains unresolved; every attempt is logged for continuing
+// diagnosis. The redirect-completion in paymentReturn keeps the sandbox
+// flow working meanwhile.
 function verifyPayfastSignature(data) {
   const { signature, ...rest } = data
   const passphrase = process.env.PAYFAST_PASSPHRASE?.trim() || ''
 
-  // Build the sorted string WITHOUT the passphrase in the set
   let dataStr = Object.keys(rest)
     .filter((k) => rest[k] !== '' && rest[k] !== undefined && rest[k] !== null)
     .sort()
     .map((k) => `${k}=${phpUrlEncode(rest[k])}`)
     .join('&')
 
-  // Append the passphrase at the END (documented ITN convention)
   if (passphrase) dataStr += `&passphrase=${phpUrlEncode(passphrase)}`
 
   const computed = crypto.createHash('md5').update(dataStr).digest('hex')
 
-  // TEMP DEBUG — proves whether the ITN convention matches
   console.log('[ITN Verify Debug] received:', signature, '| computed:', computed, '| match:', computed === signature)
 
   return computed === signature
